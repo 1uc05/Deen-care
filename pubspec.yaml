@@ -1,0 +1,47 @@
+name: caunvo
+description: "Apprendre l'anglais en jouant à un jeu avec un coach"
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:      
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^3.15.2
+  firebase_auth: ^5.7.0
+  cloud_firestore: ^5.6.12
+  
+  # État
+  provider: ^6.1.5
+  
+  # UI/Navigation
+  go_router: ^16.0.0
+  
+  # HTTP & API
+  http: ^1.4.0
+  dio: ^5.7.0
+  
+  # Communication
+  agora_rtc_engine: ^6.5.2
+  
+  # Utils
+  intl: ^0.20.2
+  url_launcher: ^6.3.2
+  
+  # Dev
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - lib/assets/images/
+  

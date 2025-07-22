@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "630412207790",
+    "project_id": "caunvo",
+    "storage_bucket": "caunvo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:630412207790:android:1fa292a34bb17034092f3f",
+        "android_client_info": {
+          "package_name": "fr.protelec.caunvo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJgywuYNS8pFx3TWQz9j1G7XFEL46QZLc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
