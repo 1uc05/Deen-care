@@ -8,13 +8,10 @@ lib/
 │   │   └── app_colors.dart            # Thème couleurs
 │   ├── services/
 │   │   ├── firebase/
-│   │   │   ├── auth_service.dart      # Authentification
-│   │   │   ├── user_service.dart      # CRUD utilisateurs
-│   │   │   └── booking_service.dart   # CRUD réservations
-│   │   ├── firebase_service.dart      # Auth + Firestore
-│   │   ├── calendly_service.dart      # API Calendly
-│   │   ├── agora_service.dart         # Chat + Voice
-│   │   └── navigation_service.dart    # Navigation globale
+│   │   │   ├── users_service.dart     # Classe fille firebase, CRUD utilisateurs
+│   │   │   └── calendar_service.dart  # Classe fille firebase, Get réservatons  / set reservaton
+│   │   └── firebase_service.dart      # Classe mère firebase, instance Firebase partagées
+│   │   └── agora_service.dart         # Chat + Voice
 │   └── utils/
 │       ├── date_utils.dart           # Formatage dates
 │       └── app_launcher.dart         # Lancement Clash Royale
@@ -23,19 +20,22 @@ lib/
 │   ├── user.dart
 │   ├── session.dart
 │   ├── message.dart
-│   └── calendar_slot.dart
+│   └── slot.dart
 │
 ├── screens/                          # Écrans principaux
-│   ├── home/
-│   │   ├── home_screen.dart
-│   ├── calendar/
-│   │   ├── calendar_screen.dart
-│   └── salon/
-│       ├── salon_screen.dart
+│   ├── main_screen.dart              # AppBar et menu
+│   ├── home_screen.dart
+│   ├── calendar_screen.dart          # Calendrier mois sur tout l'écran
+│   ├── slots_screen.dart             # Liste des créneaux disponibles d'un jour
+│   └── salon_screen.dart             # Chat de discussion
 │
 ├── providers/                        # Gestion d'état (Provider)
 │   ├── auth_provider.dart
+│   ├── calendar_provider.dart        # Mise à jour temps réel des réservations
 │   ├── session_provider.dart
 │   └── chat_provider.dart
 │
 └── widgets/                          # Widgets partagés
+    └── calendar/
+        ├── month_calendar.dart
+        └── booking_popup.dart

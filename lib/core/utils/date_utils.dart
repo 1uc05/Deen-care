@@ -1,47 +1,103 @@
-// import 'package:intl/intl.dart';
+import 'package:intl/intl.dart';
 
-// class DateUtilsFr {
-//   static final DateFormat _dateTimeFormat = DateFormat('dd/MM/yyyy à HH:mm', 'fr_FR');
-//   static final DateFormat _dateFormat = DateFormat('dd/MM/yyyy', 'fr_FR');
-//   static final DateFormat _hourMinuteFormat = DateFormat('HH:mm', 'fr_FR');
+class AppDateUtils {
+  // Formatters statiques
+  static final DateFormat _dayFormat = DateFormat('d');
+  static final DateFormat _monthYearFormat = DateFormat('MMMM yyyy', 'fr_FR');
+  static final DateFormat _timeFormat = DateFormat('HH:mm');
+  static final DateFormat _fullDateFormat = DateFormat('EEEE dd MMMM yyyy', 'fr_FR');
 
-//   /// Formate une date en français, exemple : 16/06/2024 à 14:30
-//   static String formatDateTimeFr(DateTime date) {
-//     return _dateTimeFormat.format(date);
-//   }
+  /// Formate un jour (ex: "15")
+  static String formatDay(DateTime date) => _dayFormat.format(date);
 
-//   /// Formate seulement la date (sans heure) en français
-//   static String formatDateFr(DateTime date) {
-//     return _dateFormat.format(date);
-//   }
+  /// Formate un mois et année (ex: "Janvier 2024")
+  static String formatMonthYear(DateTime date) => _monthYearFormat.format(date);
 
-//   /// Formate l'heure-minute, exemple : 14:30
-//   static String formatHourMinute(DateTime date) {
-//     return _hourMinuteFormat.format(date);
-//   }
+  /// Formate une heure (ex: "14:30")
+  static String formatTime(DateTime date) => _timeFormat.format(date);
 
-//   /// Retourne une durée lisible, ex: "1h 25min", "45min"
-//   static String formatDuration(Duration duration) {
-//     if (duration.inHours > 0) {
-//       return '${duration.inHours}h ${duration.inMinutes.remainder(60)}min';
-//     }
-//     return '${duration.inMinutes}min';
-//   }
+  /// Formate une date complète (ex: "Lundi 15 janvier 2024")
+  static String formatFullDate(DateTime date) => _fullDateFormat.format(date);
 
-//   /// Retourne true si la date passée est aujourd'hui
-//   static bool isToday(DateTime date) {
-//     final now = DateTime.now();
-//     return date.year == now.year && date.month == now.month && date.day == now.day;
-//   }
+  /// Vérifie si deux dates sont le même jour
+  static bool isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+           date1.month == date2.month &&
+           date1.day == date2.day;
+  }
 
-//   /// Retourne true si la date est dans le futur
-//   static bool isInFuture(DateTime date) {
-//     return date.isAfter(DateTime.now());
-//   }
+  /// Vérifie si une date est aujourd'hui
+  static bool isToday(DateTime date) {
+    return isSameDay(date, DateTime.now());
+  }
 
-//   /// Retourne true si la date passée est dans moins de [minutes]
-//   static bool isWithinMinutes(DateTime date, int minutes) {
-//     final now = DateTime.now();
-//     return date.isBefore(now.add(Duration(minutes: minutes))) && date.isAfter(now);
-//   }
-// }
+  /// Vérifie si une date est dans le passé
+  static bool isPastDay(DateTime date) {
+    final today = DateTime.now();
+    return date.isBefore(DateTime(today.year, today.month, today.day));
+  }
+
+  /// Obtient le premier jour du mois
+  static DateTime getFirstDayOfMonth(DateTime date) {
+    return DateTime(date.year, date.month, 1);
+  }
+
+  /// Obtient le dernier jour du mois
+  static DateTime getLastDayOfMonth(DateTime date) {
+    return DateTime(date.year, date.month + 1, 0);
+  }
+
+  /// Génère la liste des jours à afficher dans le calendrier mensuel
+  /// Inclut les jours du mois précédent et suivant pour remplir la grille
+  static List<DateTime> getCalendarDays(DateTime month) {
+    final firstDay = getFirstDayOfMonth(month);
+    final lastDay = getLastDayOfMonth(month);
+    
+    // Premier lundi de la grille (peut être du mois précédent)
+    final startDate = firstDay.subtract(Duration(days: firstDay.weekday - 1));
+    
+    // Dernier dimanche de la grille (peut être du mois suivant)
+    final endDate = lastDay.add(Duration(days: 7 - lastDay.weekday));
+    
+    final days = <DateTime>[];
+    var current = startDate;
+    
+    while (current.isBefore(endDate) || current.isAtSameMomentAs(endDate)) {
+      days.add(current);
+      current = current.add(const Duration(days: 1));
+    }
+    
+    return days;
+  }
+
+  /// Obtient les jours du mois actuel uniquement
+  static List<DateTime> getDaysInMonth(DateTime month) {
+    final firstDay = getFirstDayOfMonth(month);
+    final lastDay = getLastDayOfMonth(month);
+    
+    final days = <DateTime>[];
+    var current = firstDay;
+    
+    while (current.isBefore(lastDay) || current.isAtSameMomentAs(lastDay)) {
+      days.add(current);
+      current = current.add(const Duration(days: 1));
+    }
+    
+    return days;
+  }
+
+  /// Obtient le mois précédent
+  static DateTime getPreviousMonth(DateTime date) {
+    return DateTime(date.year, date.month - 1, 1);
+  }
+
+  /// Obtient le mois suivant
+  static DateTime getNextMonth(DateTime date) {
+    return DateTime(date.year, date.month + 1, 1);
+  }
+
+  /// Obtient les noms des jours de la semaine (L, M, M, J, V, S, D)
+  static List<String> getWeekdayHeaders() {
+    return ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  }
+}

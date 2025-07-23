@@ -162,3 +162,115 @@ Contraintes techniques à respecter :
     Code commenté en français pour les parties métier complexes
 
 Chaque étape doit être générée complètement, il faut attendre une instruction avant de passer à la suivante.
+
+
+
+
+
+
+
+
+
+
+
+
+Phase suivante :
+Phase 2 : Calendrier et réservation
+Logique :
+- L’application récupère en temps réel les créneaux disponibles depuis Firestore.
+- Lorsqu’un utilisateur réserve un créneau :
+    Le slot est marqué comme réservé dans Firestore (champ reservedByUid rempli avec l’UID Firebase de l’utilisateur).
+    La réservation doit se faire via une transaction Firestore afin d’éviter les double-réservations.
+- Les créneaux déjà réservés ou passés ne doivent plus être proposés.
+
+Modèle de données Firestore
+- Collection principale : slots
+    - Champs d’un document slot
+        startTime: Timestamp (obligatoire) – début du créneau
+        endTime: Timestamp (obligatoire) – fin du créneau
+        reservedByUid: String (UID de l’utilisateur, ou null si dispo)
+        createdAt: Timestamp
+        updatedAt: Timestamp
+        status: String (available, booked)
+
+UI
+- un calendrier du mois en cours est affiché
+- des fleches permettent de passer au mois suivant/précédent
+- les jours avec des créneaux disponibles sont affichés en bleu
+- en sélectionnant un jour avec une disponibilité, une page s'ouvre avec la liste des disponibilités
+- en sélectionnant une disponibilité un popup de confirmation s'ouvre
+
+Étape 2.0 – Modèle du slot
+Générer :
+    models/slot.dart
+    Classe Slot, sérialisable (constructeur, fromMap, toMap)
+
+Classe Slot
+    Champs :
+        String id (optionnel, pour stocker l’ID Firestore si besoin)
+        DateTime startTime
+        DateTime endTime
+        String status : “available” / “reserved” / “completed” / “cancelled”
+        String? reservedBy (nullable)
+        String createdBy
+        DateTime createdAt
+        DateTime updatedAt
+    Méthodes :
+        Slot.fromMap(Map<String, dynamic> data, String docId)
+        Map<String, dynamic> toMap()
+
+
+Étape 2.1 - Service firebase (SlotService)
+Générer :
+core/services/firebase/calendar_service.dart :
+    Méthode getAvailableSlots() retourne la liste des créneaux disponibles (format 30 minues)
+    Méthode bookSlot() sauvegarde dans firebase le créneau réservé (utiliser une transaction pour garantir l’exclusivité)
+    Collection : bookings/{userId}/slots/{slotId}
+    Champs : slotId, date, heure, timestamp
+
+Étape 2.2 - Écran calendrier
+Générer :
+screens/calendar_screen.dart :
+    Intégration du widget month_calendar dans la page (plein écran)
+
+Étape 2.3 - Écran créneau
+Générer :
+screens/slots_screen.dart :
+    Liste horaire des créneaux disponibles pour le jour sélecionné
+    1 ligne = 1 créneau représenté par l'heure de début du créneau (ex: 1igne1: 12:30 / ligne2: 14:00 / ligne3: 14:30)
+    Tap sur créneau : popup de confirmation réservation
+    Après confirmation réservation, retour à la page home
+
+Étape 2.4 - Widgets calendrier
+Générer :
+widgets/calendar/month_calendar.dart : 
+    Widget calendrier mensuel
+    Jours bleus si des créneaux dispos
+    Flèches pour passer d’un mois à l’autre
+
+widgets/calendar/booking_popup.dart :
+    Popup confirmation réservation avec heure/date
+    Boutons Annuler/Confirmer
+    
+core/utils/date_utils.dart : 
+      Fonctions : formater dates, obtenir listes de dates du mois, etc.
+
+Étape 2.5 - Mise à jour temps réel
+Générer :
+core/providers/calendar_provider.dart :
+    Provider pour l’état calendrier
+    Rafraîchissement auto via stream Firestore
+    Synchronisation après action (réservation/refresh slots)
+    Gestion états de chargement (loading/reserved/failed)
+
+Dépendances à ajouter
+dependencies:
+  table_calendar: ^3.0.9
+
+Résultat attendu : 
+- Calendrier plein écran, créneaux 30 minutes affichés, réservations transactionnelles via Firestore.
+- Navigation fluide, UI feedback clairs.
+- Synchro en temps réel : créneaux disparaissent dès qu’ils sont réservés.
+
+
+Fais une pose entre chaque étape

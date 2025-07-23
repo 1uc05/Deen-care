@@ -1,4 +1,3 @@
-// core/services/users_firebase_service.dart
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '/models/user.dart' as app_models;
 import '../firebase_service.dart';

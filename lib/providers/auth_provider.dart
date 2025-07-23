@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
-import '../core/services/firebase_service.dart';
+import '../core/services/firebase/users_service.dart';
 import '../models/user.dart';
 
 enum AuthState { initial, loading, authenticated, unauthenticated, error }
 
 class AuthProvider extends ChangeNotifier {
-  final FirebaseService _firebaseService = FirebaseService();
+  final UsersFirebaseService _firebaseService = UsersFirebaseService();
   
   AuthState _state = AuthState.initial;
   User? _user;
@@ -65,12 +65,12 @@ class AuthProvider extends ChangeNotifier {
         _error = null;
         notifyListeners();
         
-        print('Inscription réussie pour: ${user.email}');
+        debugPrint('Inscription réussie pour: ${user.email}');
       } else {
         throw Exception('Échec de création du compte');
       }
     } catch (e) {
-      print('Erreur signUp: $e');
+      debugPrint('Erreur signUp: $e');
       _setError(e.toString());
       
       // Si l'utilisateur Firebase existe mais pas le document Firestore,
