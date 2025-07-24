@@ -2,10 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '/models/user.dart' as app_models;
 import '../firebase_service.dart';
 
-class UsersFirebaseService extends BaseFirebaseService {
-  static final UsersFirebaseService _instance = UsersFirebaseService._internal();
-  factory UsersFirebaseService() => _instance;
-  UsersFirebaseService._internal();
+class UsersService extends FirebaseService {
+  static final UsersService _instance = UsersService._internal();
+  factory UsersService() => _instance;
+  UsersService._internal();
 
   static const String _collection = 'users';
 
@@ -34,6 +34,7 @@ class UsersFirebaseService extends BaseFirebaseService {
         email: email,
         name: name,
         createdAt: DateTime.now(),
+        role: app_models.UserRole.client, // Par défaut, rôle client
       );
 
       await firestore

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'app.dart';
 import 'providers/auth_provider.dart';
 import 'providers/calendar_provider.dart';
+import 'providers/session_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; 
 import 'package:intl/date_symbol_data_local.dart';
 import 'core/utils/seed_data.dart';
@@ -27,14 +28,18 @@ void main() async {
     await initializeDateFormatting(); // Locale système par défaut
   }
 
-  // ⚠️ TEMPORAIRE - À supprimer après test
-  // await SeedData.createTestSlots();
+  // TODO: TEMPORAIRE - À supprimer après test
+  await DatabaseTools.resetTestData();
+  // await DatabaseTools.clearCollection('sessions');
+  // await DatabaseTools.clearCollection('slots');
+  // await DatabaseTools.createTestSlots();
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CalendarProvider()),
+        ChangeNotifierProvider(create: (_) => SessionProvider()),
       ],
       child: const CaunvoApp(),
     ),

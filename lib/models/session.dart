@@ -1,68 +1,92 @@
-enum SessionStatus { scheduled, active, completed }
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+// Constantes pour les statuts
+class SessionStatus {
+  static const String scheduled = 'scheduled';
+  static const String active = 'active';
+  static const String completed = 'completed';
+}
 
 class Session {
   final String id;
-  final String coachId;
   final String userId;
-  final DateTime scheduledAt;
-  final SessionStatus status;
+  final String coachId;
+  final String slotId;
+  final String status;
+  final Timestamp? startedAt;
   final String agoraChannelId;
-  final DateTime createdAt;
 
   const Session({
     required this.id,
-    required this.coachId,
     required this.userId,
-    required this.scheduledAt,
+    required this.coachId,
+    required this.slotId,
     required this.status,
+    this.startedAt,
     required this.agoraChannelId,
-    required this.createdAt,
   });
 
-  factory Session.fromJson(Map<String, dynamic> json) {
+  // Factory depuis Firestore
+  factory Session.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
     return Session(
-      id: json['id'] as String,
-      coachId: json['coachId'] as String,
-      userId: json['userId'] as String,
-      scheduledAt: DateTime.parse(json['scheduledAt'] as String),
-      status: SessionStatus.values.firstWhere(
-        (e) => e.name == json['status'],
-        orElse: () => SessionStatus.scheduled,
-      ),
-      agoraChannelId: json['agoraChannelId'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      id: doc.id,
+      userId: data['userId'] ?? '',
+      coachId: data['coachId'] ?? '',
+      slotId: data['slotId'] ?? '',
+      status: data['status'] ?? 'scheduled',
+      startedAt: data['startedAt'],
+      agoraChannelId: data['agoraChannelId'] ?? '',
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'coachId': coachId,
+  // Conversion vers Map pour Firestore
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{
       'userId': userId,
-      'scheduledAt': scheduledAt.toIso8601String(),
-      'status': status.name,
+      'coachId': coachId,
+      'slotId': slotId,
+      'status': status,
       'agoraChannelId': agoraChannelId,
-      'createdAt': createdAt.toIso8601String(),
     };
+    
+    if (startedAt != null) {
+      map['startedAt'] = startedAt!;
+    }
+    
+    return map;
   }
 
+
+
+  // Helpers pour les statuts
+  bool get isScheduled => status == SessionStatus.scheduled;
+  bool get isActive => status == SessionStatus.active;
+  bool get isCompleted => status == SessionStatus.completed;
+
+  // copyWith pour modifications
   Session copyWith({
     String? id,
-    String? coachId,
     String? userId,
-    DateTime? scheduledAt,
-    SessionStatus? status,
+    String? coachId,
+    String? slotId,
+    String? status,
+    Timestamp? startedAt,
     String? agoraChannelId,
-    DateTime? createdAt,
   }) {
     return Session(
       id: id ?? this.id,
-      coachId: coachId ?? this.coachId,
       userId: userId ?? this.userId,
-      scheduledAt: scheduledAt ?? this.scheduledAt,
+      coachId: coachId ?? this.coachId,
+      slotId: slotId ?? this.slotId,
       status: status ?? this.status,
+      startedAt: startedAt ?? this.startedAt,
       agoraChannelId: agoraChannelId ?? this.agoraChannelId,
-      createdAt: createdAt ?? this.createdAt,
     );
+  }
+
+  @override
+  String toString() {
+    return 'Session(id: $id, status: $status, slotId: $slotId)';
   }
 }

@@ -1,14 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../firebase_service.dart';
 import '../../../models/slot.dart';
+import '../../../models/session.dart';
+import 'sessions_service.dart';
 
-class CalendarService extends BaseFirebaseService {
-  static final CalendarService _instance = CalendarService._internal();
-  factory CalendarService() => _instance;
-  CalendarService._internal();
+class SlotsService extends FirebaseService {
+  static final SlotsService _instance = SlotsService._internal();
+  factory SlotsService() => _instance;
+  SlotsService._internal();
 
   static const String _slotsCollection = 'slots';
-  static const String _bookingsCollection = 'bookings';
+
+  final SessionsService _sessionsService = SessionsService();
 
   /// Récupère les créneaux disponibles (non réservés et futurs)
   Stream<List<Slot>> getAvailableSlots({
@@ -56,15 +59,15 @@ class CalendarService extends BaseFirebaseService {
     );
   }
 
-  /// Réserve un créneau avec transaction pour éviter les double-réservations
-  Future<bool> bookSlot(String slotId) async {
+  /// Réserve un créneau et crée une session
+  Future<void> bookSlot(String slotId) async {
     validateCurrentUser();
     
     final userId = currentFirebaseUser!.uid;
     final now = DateTime.now();
 
     try {
-      return await firestore.runTransaction<bool>((transaction) async {
+      await firestore.runTransaction<void>((transaction) async {
         // 1. Récupérer le slot
         final slotRef = firestore.collection(_slotsCollection).doc(slotId);
         final slotDoc = await transaction.get(slotRef);
@@ -97,20 +100,47 @@ class CalendarService extends BaseFirebaseService {
           throw Exception('Vous avez déjà une réservation active');
         }
 
-        // 4. Réserver le slot (SEULE opération nécessaire)
+        // 4. Créer la session (hors transaction pour éviter les conflits)
+        final sessionId = await _createSessionForSlot(slot, userId, slot.createdBy);
+
+        // 5. Réserver le slot avec sessionId
         transaction.update(slotRef, {
           'status': 'reserved',
           'reservedBy': userId,
-          'updatedAt': Timestamp.fromDate(now),
+          'sessionId': sessionId,
+          'reservedAt': Timestamp.fromDate(now),
         });
 
-        return true;
+        // 6. Mettre à jour currentSessionId dans user
+        final userRef = firestore.collection('users').doc(userId);
+        transaction.update(userRef, {
+          'currentSessionId': sessionId,
+        });
+
       });
     } catch (e) {
       throw handleFirestoreException(e, 'réservation du créneau');
     }
   }
 
+  /// Crée une session pour un slot
+  Future<String> _createSessionForSlot(Slot slot, String userId, String coachId) async {
+
+    // Générer un channel Agora unique
+    final agoraChannelId = 'session_${DateTime.now().millisecondsSinceEpoch}';
+
+    final session = Session(
+      id: '', // Sera généré par Firestore
+      userId: userId,
+      coachId: coachId,
+      slotId: slot.id!,
+      status: SessionStatus.scheduled,
+      startedAt: Timestamp.fromDate(slot.startTime),
+      agoraChannelId: agoraChannelId,
+    );
+
+    return await _sessionsService.createSession(session);
+  }
 
   /// Récupère les réservations d'un utilisateur
   Stream<List<Slot>> getUserBookings(String userId) {
@@ -133,12 +163,29 @@ class CalendarService extends BaseFirebaseService {
     }
   }
 
-  /// Annule une réservation
+  /// Récupère un slot spécifique par son ID
+  Future<Slot?> getSlotById(String slotId) async {
+    try {
+      final slotDoc = await firestore
+          .collection(_slotsCollection)
+          .doc(slotId)
+          .get();
+
+      if (!slotDoc.exists) return null;
+
+      return Slot.fromMap(slotDoc.data()!, slotDoc.id);
+      
+    } catch (e) {
+      throw handleFirestoreException(e, 'récupération du slot');
+    }
+  }
+
+
+  /// Annule une réservation et supprime la session
   Future<bool> cancelBooking(String slotId) async {
     validateCurrentUser();
     
     final userId = currentFirebaseUser!.uid;
-    final now = DateTime.now();
 
     try {
       return await firestore.runTransaction<bool>((transaction) async {
@@ -155,11 +202,23 @@ class CalendarService extends BaseFirebaseService {
           throw Exception('Vous ne pouvez pas annuler cette réservation');
         }
 
+        // Supprimer la session si elle existe
+        if (slot.hasSession) {
+          await _sessionsService.deleteSession(slot.sessionId!);
+        }
+
         // Libérer le slot
         transaction.update(slotRef, {
           'status': 'available',
           'reservedBy': null,
-          'updatedAt': Timestamp.fromDate(now),
+          'sessionId': null,
+          'reservedAt': null,
+        });
+
+        // Nettoyer currentSessionId dans user
+        final userRef = firestore.collection('users').doc(userId);
+        transaction.update(userRef, {
+          'currentSessionId': null,
         });
 
         return true;

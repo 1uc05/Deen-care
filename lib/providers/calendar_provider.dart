@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/slot.dart';
-import '../core/services/firebase/calendar_service.dart';
+import '../core/services/firebase/slots_service.dart';
+import '../core/services/firebase/sessions_service.dart';
 
 enum CalendarLoadingState {
   initial,
@@ -17,21 +18,24 @@ enum BookingState {
 }
 
 class CalendarProvider with ChangeNotifier {
-  final CalendarService _calendarService;
+  final SlotsService _slotsService;
+  final SessionsService _sessionsService;
+
+  // Etat interne
+  String? _currentUserId;
+  List<Slot> _slots = [];
+  String? _errorMessage;
+  String? _bookingError;
+  Stream<List<Slot>>? _slotsStream;
+  Slot? _currentSlot;
 
   // États publics
   CalendarLoadingState _loadingState = CalendarLoadingState.initial;
   BookingState _bookingState = BookingState.idle;
-  
-  List<Slot> _slots = [];
-  String? _errorMessage;
-  String? _bookingError;
 
-  // Stream subscription pour les mises à jour temps réel
-  Stream<List<Slot>>? _slotsStream;
-
-  CalendarProvider({CalendarService? calendarService}) 
-    : _calendarService = calendarService ?? CalendarService();
+  CalendarProvider({SlotsService? slotsService, SessionsService? sessionsService}) 
+    : _slotsService = slotsService ?? SlotsService(),
+      _sessionsService = sessionsService ?? SessionsService();
 
   // Getters
   CalendarLoadingState get loadingState => _loadingState;
@@ -39,12 +43,42 @@ class CalendarProvider with ChangeNotifier {
   List<Slot> get slots => List.unmodifiable(_slots);
   String? get errorMessage => _errorMessage;
   String? get bookingError => _bookingError;
-  
+  Slot? get currentSlot => _currentSlot;
+  bool get hasActiveSession => _currentSlot != null;
+
   // Getters de commodité
   bool get isLoading => _loadingState == CalendarLoadingState.loading;
   bool get hasError => _loadingState == CalendarLoadingState.error;
   bool get isBooking => _bookingState == BookingState.booking;
   bool get hasBookingError => _bookingState == BookingState.error;
+
+  Slot? get userScheduledSlot {
+    return _slots
+        .where((slot) =>
+            slot.reservedBy == _currentUserId &&
+            slot.status == SlotStatus.reserved &&
+            slot.sessionId != null &&
+            slot.startTime.isAfter(DateTime.now()))
+        .firstOrNull;
+  }
+
+  Future<void> initialize(String userId) async {
+    try {
+      _currentUserId = userId;
+
+      final currentSlotId = await _sessionsService.getSessionSlotId(userId);
+      debugPrint('Current slot ID: $currentSlotId');
+
+      if (currentSlotId != null) {
+        _currentSlot = await _slotsService.getSlotById(currentSlotId);
+        debugPrint('Current slot: $_currentSlot');
+      } else {
+        _currentSlot = null;
+      }
+    } catch (e) {
+      _setError('Erreur initialisation: $e');
+    }
+  }
 
   /// Obtient les créneaux disponibles d'un jour spécifique
   List<Slot> getSlotsForDay(DateTime day) {
@@ -77,7 +111,7 @@ class CalendarProvider with ChangeNotifier {
 
     try {
       // Obtenir le stream des créneaux
-      _slotsStream = _calendarService.getAvailableSlots();
+      _slotsStream = _slotsService.getAvailableSlots();
       
       // Écouter les changements en temps réel
       _slotsStream!.listen(
@@ -89,13 +123,11 @@ class CalendarProvider with ChangeNotifier {
           notifyListeners();
         },
         onError: (error) {
-          debugPrint('Erreur stream calendrier: $error');
           _setError('Erreur de synchronisation: $error');
         },
       );
 
     } catch (e) {
-      debugPrint('Erreur chargement calendrier: $e');
       _setError('Impossible de charger les créneaux: $e');
     }
   }
@@ -108,13 +140,12 @@ class CalendarProvider with ChangeNotifier {
       // Re-déclencher le chargement
       await loadAvailableSlots();
     } catch (e) {
-      debugPrint('Erreur refresh: $e');
       _setError('Erreur lors de l\'actualisation: $e');
     }
   }
 
   /// Réserve un créneau
-  Future<void> bookSlot(Slot slot, String userId) async {
+  Future<void> bookSlot(Slot slot) async {
     if (_bookingState == BookingState.booking) return;
 
     _setBookingState(BookingState.booking);
@@ -126,15 +157,16 @@ class CalendarProvider with ChangeNotifier {
         throw Exception('Ce créneau n\'est plus disponible');
       }
 
-      if (hasExistingReservation(userId)) {
-        throw Exception('Vous avez déjà une réservation en cours');
+      // Vérification ID non-null avec gestion d'erreur claire
+      if (slot.id == null || slot.id!.isEmpty) {
+        throw Exception('Identifiant du créneau invalide');
       }
 
-      // Réserver le créneau
-      if (slot.id == null) {
-        throw Exception('Identifiant du créneau manquant');
-      }
-      await _calendarService.bookSlot(slot.id!);
+      // Réserver le créneau (création session et update currentSessionId)
+      await _slotsService.bookSlot(slot.id!);
+
+      // Metre à jour currentSlot
+      _currentSlot = slot;
       
       _setBookingState(BookingState.success);
       
@@ -146,8 +178,8 @@ class CalendarProvider with ChangeNotifier {
       });
 
     } catch (e) {
-      debugPrint('Erreur réservation: $e');
       _setBookingError('Réservation échouée: $e');
+      rethrow;
     }
   }
 
@@ -159,8 +191,9 @@ class CalendarProvider with ChangeNotifier {
     _clearBookingError();
 
     try {
-      await _calendarService.cancelBooking(slotId);
+      await _slotsService.cancelBooking(slotId);
       _setBookingState(BookingState.success);
+      _currentSlot = null;
       
       // Auto-reset du state
       Future.delayed(const Duration(seconds: 3), () {
@@ -170,34 +203,16 @@ class CalendarProvider with ChangeNotifier {
       });
 
     } catch (e) {
-      debugPrint('Erreur annulation: $e');
       _setBookingError('Annulation échouée: $e');
     }
   }
 
-  /// Vérifie si l'utilisateur a déjà une réservation
-  bool hasExistingReservation(String userId) {
-    return _slots.any((slot) => 
-      slot.status == SlotStatus.reserved && slot.reservedBy == userId
-    );
-  }
-
-  /// Obtient la réservation active de l'utilisateur
-  Slot? getUserActiveReservation(String userId) {
-    try {
-      return _slots.firstWhere((slot) =>
-        slot.status == SlotStatus.reserved && slot.reservedBy == userId
-      );
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Vérifie si un créneau est réservable
-  bool canBookSlot(Slot slot, String userId) {
-    return slot.status == SlotStatus.available && 
-           !hasExistingReservation(userId) &&
-           slot.startTime.isAfter(DateTime.now());
+  Slot? getUserReservation() {
+    return _slots
+        .where((slot) =>
+            slot.reservedBy == _currentUserId &&
+            slot.status == SlotStatus.reserved)
+        .firstOrNull;
   }
 
   // Méthodes privées de gestion d'état
@@ -217,11 +232,13 @@ class CalendarProvider with ChangeNotifier {
 
   void _setError(String error) {
     _errorMessage = error;
+    debugPrint(error);
     _setLoadingState(CalendarLoadingState.error);
   }
 
   void _setBookingError(String error) {
     _bookingError = error;
+    debugPrint(error);
     _setBookingState(BookingState.error);
   }
 
@@ -247,6 +264,7 @@ class CalendarProvider with ChangeNotifier {
     _errorMessage = null;
     _bookingError = null;
     _slotsStream = null;
+    _currentSlot = null;
     notifyListeners();
   }
 

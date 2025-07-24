@@ -27,8 +27,9 @@ class Slot {
   final SlotStatus status;
   final String? reservedBy;
   final String createdBy;
+  final String? sessionId;
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? reservedAt;
 
   const Slot({
     this.id,
@@ -37,8 +38,9 @@ class Slot {
     required this.status,
     this.reservedBy,
     required this.createdBy,
+    this.sessionId,
     required this.createdAt,
-    required this.updatedAt,
+    this.reservedAt,
   });
 
   /// Constructeur depuis les données Firestore
@@ -50,8 +52,11 @@ class Slot {
       status: SlotStatus.fromString(data['status'] as String? ?? 'available'),
       reservedBy: data['reservedBy'] as String?,
       createdBy: data['createdBy'] as String,
+      sessionId: data['sessionId'] as String?,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      reservedAt: data['reservedAt'] != null
+          ? (data['reservedAt'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -63,8 +68,11 @@ class Slot {
       'status': status.value,
       'reservedBy': reservedBy,
       'createdBy': createdBy,
+      'sessionId': sessionId,
       'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'reservedAt': reservedAt != null
+          ? Timestamp.fromDate(reservedAt!)
+          : null,
     };
   }
 
@@ -74,6 +82,7 @@ class Slot {
   bool get isCompleted => status == SlotStatus.completed;
   bool get isCancelled => status == SlotStatus.cancelled;
   bool get isPast => endTime.isBefore(DateTime.now());
+  bool get hasSession => sessionId != null;
   
   Duration get duration => endTime.difference(startTime);
 
@@ -85,8 +94,9 @@ class Slot {
     SlotStatus? status,
     String? reservedBy,
     String? createdBy,
+    String? sessionId,
     DateTime? createdAt,
-    DateTime? updatedAt,
+    DateTime? reservedAt,
   }) {
     return Slot(
       id: id ?? this.id,
@@ -95,15 +105,15 @@ class Slot {
       status: status ?? this.status,
       reservedBy: reservedBy ?? this.reservedBy,
       createdBy: createdBy ?? this.createdBy,
+      sessionId: sessionId ?? this.sessionId,
       createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+      reservedAt: reservedAt ?? this.reservedAt,
     );
   }
 
-
   @override
   String toString() {
-    return 'Slot(id: $id, startTime: $startTime, endTime: $endTime, status: $status, reservedBy: $reservedBy)';
+    return 'Slot(id: $id, startTime: $startTime, endTime: $endTime, status: $status, reservedBy: $reservedBy, sessionId: $sessionId)';
   }
 
   @override

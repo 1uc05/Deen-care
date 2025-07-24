@@ -1,9 +1,13 @@
+import 'package:caunvo/models/session.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../widgets/calendar/month_calendar.dart';
 import '../providers/calendar_provider.dart';
+import '../providers/session_provider.dart';
 import '../core/constants/app_colors.dart';
 import 'slots_screen.dart';
+import '../widgets/calendar/reservation_card.dart';
+import '../models/slot.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -17,9 +21,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void initState() {
     super.initState();
     // Initialiser le provider au premier chargement
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CalendarProvider>().loadAvailableSlots();
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   context.read<CalendarProvider>().loadAvailableSlots();
+    // });
   }
 
   void _onDaySelected(DateTime selectedDay) {
@@ -30,6 +34,58 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
   }
+
+  
+  Future<void> _cancelReservation(Slot slot) async {
+    // Confirmer l'annulation
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Annuler la réservation'),
+        content: const Text('Êtes-vous sûr de vouloir annuler votre réservation ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Non'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Oui', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await context.read<CalendarProvider>().cancelReservation(slot.id!);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Réservation annulée avec succès'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur: ${e.toString().replaceAll('Exception: ', '')}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _goToSalon(Slot slot) {
+    // Navigation vers le salon
+    // Navigator.push(context, MaterialPageRoute(builder: (context) => SalonScreen(sessionId: slot.sessionId)));
+    print('Navigation vers salon: ${slot.sessionId}');
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -97,35 +153,54 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Instructions pour l'utilisateur
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.highLight.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: AppColors.highLight.withOpacity(0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: AppColors.highLight,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Sélectionnez une date pour voir les créneaux disponibles',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.highLight,
-                                fontWeight: FontWeight.w500,
+                    Consumer<CalendarProvider>(
+                      builder: (context, provider, child) {
+                        final userReservation = provider.currentSlot;
+
+                        debugPrint('User reservation: $userReservation');
+                        
+                        if (userReservation != null) {
+                          // Afficher la carte de réservation
+                          return ReservationCard(
+                            reservedSlot: userReservation,
+                            onCancel: () => _cancelReservation(userReservation),
+                            onGoToSalon: () => _goToSalon(userReservation),
+                            isLoading: provider.isLoading,
+                          );
+                        } else {
+                          // Afficher le message instructions par défaut
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.highLight.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppColors.highLight.withOpacity(0.3),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: AppColors.highLight,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Sélectionnez une date pour voir les créneaux disponibles',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: AppColors.highLight,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      },
                     ),
                     const SizedBox(height: 20),
                     

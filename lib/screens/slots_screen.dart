@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../providers/calendar_provider.dart';
-import '../providers/auth_provider.dart';
+import '../providers/session_provider.dart';
 import '../models/slot.dart';
 import '../core/constants/app_colors.dart';
 import '../widgets/calendar/booking_popup.dart';
+import '../core/utils/date_utils.dart';
 
 class SlotsScreen extends StatefulWidget {
   final DateTime selectedDate;
@@ -23,9 +23,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
   bool _isBooking = false;
 
   @override
-  Widget build(BuildContext context) {
-    final dateFormatter = DateFormat('EEEE dd MMMM yyyy', 'fr_FR');
-    
+  Widget build(BuildContext context) {    
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -41,37 +39,79 @@ class _SlotsScreenState extends State<SlotsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // En-tête avec la date sélectionnée
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.highLight.withOpacity(0.1),
-              border: Border(
-                bottom: BorderSide(
-                  color: AppColors.highLight.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  dateFormatter.format(widget.selectedDate),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppColors.highLight,
-                    fontWeight: FontWeight.w600,
+          Consumer<CalendarProvider>(
+            builder: (context, calendarProvider, child) {
+              final hasActiveSession = calendarProvider.hasActiveSession;
+              
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.highLight.withOpacity(0.1),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: AppColors.highLight.withOpacity(0.2),
+                      width: 1,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Sélectionnez un créneau pour réserver',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textGrey,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppDateUtils.formatFullDate(widget.selectedDate),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppColors.highLight,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      hasActiveSession
+                        ? 'Un créneau est déjà réservé'
+                        : 'Sélectionnez un créneau pour réserver',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: hasActiveSession 
+                          ? Colors.orange.shade700  // Couleur différente si bloqué
+                          : AppColors.textGrey,
+                      ),
+                    ),
+                    if (hasActiveSession) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.orange.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 16,
+                              color: Colors.orange.shade700,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Terminez votre session actuelle pour réserver',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.orange.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
 
           // Liste des créneaux
@@ -93,13 +133,15 @@ class _SlotsScreenState extends State<SlotsScreen> {
                   return _buildEmptyState();
                 }
 
+                final hasActiveSession = calendarProvider.hasActiveSession;
+
                 return ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: daySlots.length,
                   separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final slot = daySlots[index];
-                    return _buildSlotItem(slot);
+                    return _buildSlotItem(slot, isBlocked: hasActiveSession); // ✅ Passer le statut
                   },
                 );
               },
@@ -110,25 +152,26 @@ class _SlotsScreenState extends State<SlotsScreen> {
     );
   }
 
-  Widget _buildSlotItem(Slot slot) {
-    final timeFormatter = DateFormat('HH:mm');
-    final startTime = timeFormatter.format(slot.startTime);
-    final endTime = timeFormatter.format(slot.endTime);
+  Widget _buildSlotItem(Slot slot, {required bool isBlocked}) { // ✅ Paramètre ajouté
+    final startTime = AppDateUtils.formatTime(slot.startTime);
+    final endTime = AppDateUtils.formatTime(slot.endTime);
 
     return Card(
-      elevation: 2,
+      elevation: isBlocked ? 1 : 2, // ✅ Élévation réduite si bloqué
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
-        onTap: _isBooking ? null : () => _showBookingConfirmation(slot),
+        onTap: (isBlocked || _isBooking) ? null : () => _showBookingConfirmation(slot), // ✅ Condition modifiée
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: AppColors.highLight.withOpacity(0.2),
+              color: isBlocked 
+                ? Colors.grey.shade300 // ✅ Bordure grise si bloqué
+                : AppColors.highLight.withOpacity(0.2),
               width: 1,
             ),
           ),
@@ -139,12 +182,16 @@ class _SlotsScreenState extends State<SlotsScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.highLight.withOpacity(0.1),
+                  color: isBlocked
+                    ? Colors.grey.shade100 // ✅ Couleur terne si bloqué
+                    : AppColors.highLight.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Icon(
-                  Icons.access_time,
-                  color: AppColors.highLight,
+                  isBlocked ? Icons.lock_outline : Icons.access_time, // ✅ Icône différente
+                  color: isBlocked
+                    ? Colors.grey.shade400
+                    : AppColors.highLight,
                   size: 24,
                 ),
               ),
@@ -158,22 +205,28 @@ class _SlotsScreenState extends State<SlotsScreen> {
                     Text(
                       startTime,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.highLight,
+                        color: isBlocked
+                          ? Colors.grey.shade500 // ✅ Texte gris si bloqué
+                          : AppColors.highLight,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Durée: $startTime - $endTime (30 min)',
+                      isBlocked 
+                        ? 'Non disponible - Session en cours' // ✅ Texte différent
+                        : 'Durée: $startTime - $endTime (30 min)',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textGrey,
+                        color: isBlocked
+                          ? Colors.grey.shade400
+                          : AppColors.textGrey,
                       ),
                     ),
                   ],
                 ),
               ),
               
-              // Flèche ou loader
+              // Flèche, loader ou icône bloquée
               if (_isBooking)
                 const SizedBox(
                   width: 20,
@@ -182,6 +235,12 @@ class _SlotsScreenState extends State<SlotsScreen> {
                     strokeWidth: 2,
                     color: AppColors.highLight,
                   ),
+                )
+              else if (isBlocked)
+                Icon(
+                  Icons.block, // ✅ Icône de blocage
+                  color: Colors.grey.shade400,
+                  size: 20,
                 )
               else
                 Icon(
@@ -196,6 +255,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
     );
   }
 
+  // Le reste des méthodes restent identiques...
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -253,9 +313,8 @@ class _SlotsScreenState extends State<SlotsScreen> {
 
     try {
       final calendarProvider = context.read<CalendarProvider>();
-      final authProvider = context.read<AuthProvider>();
 
-      await calendarProvider.bookSlot(slot, authProvider.user!.id);
+      await calendarProvider.bookSlot(slot);
 
       if (mounted) {
         // Afficher un message de succès
@@ -272,9 +331,11 @@ class _SlotsScreenState extends State<SlotsScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final errorMessage = e.toString().replaceAll('Exception: ', '');
+      
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de la réservation: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -285,11 +346,5 @@ class _SlotsScreenState extends State<SlotsScreen> {
         setState(() => _isBooking = false);
       }
     }
-  }
-
-  bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year &&
-           date1.month == date2.month &&
-           date1.day == date2.day;
   }
 }

@@ -5,11 +5,14 @@ import '../models/user.dart';
 enum AuthState { initial, loading, authenticated, unauthenticated, error }
 
 class AuthProvider extends ChangeNotifier {
-  final UsersFirebaseService _firebaseService = UsersFirebaseService();
+  final UsersService _usersService = UsersService();
   
+  // Etat interne
   AuthState _state = AuthState.initial;
   User? _user;
   String? _error;
+  // String? _currentSessionId;
+
 
   // Getters
   AuthState get state => _state;
@@ -24,12 +27,14 @@ class AuthProvider extends ChangeNotifier {
 
   /// Initialise l'écoute des changements d'état d'authentification
   void _initAuthListener() {
-    _firebaseService.authStateChanges.listen((firebaseUser) async {
+    _usersService.authStateChanges.listen((firebaseUser) async {
       if (firebaseUser != null) {
         try {
-          final user = await _firebaseService.getCurrentUser();
+          final user = await _usersService.getCurrentUser();
           if (user != null) {
             _setAuthenticated(user);
+
+          // _currentSessionId = await _usersService.getCurrentSessionId();
           } else {
             _setUnauthenticated();
           }
@@ -52,7 +57,7 @@ class AuthProvider extends ChangeNotifier {
     
     try {
       // Inscription via Firebase Service
-      final user = await _firebaseService.signUpWithEmail(
+      final user = await _usersService.signUpWithEmail(
         email: email,
         password: password,
         name: name,
@@ -75,8 +80,8 @@ class AuthProvider extends ChangeNotifier {
       
       // Si l'utilisateur Firebase existe mais pas le document Firestore,
       // on peut essayer de se déconnecter pour éviter un état incohérent
-      if (_firebaseService.currentFirebaseUser != null) {
-        await _firebaseService.signOut();
+      if (_usersService.currentFirebaseUser != null) {
+        await _usersService.signOut();
       }
     }
   }
@@ -90,7 +95,7 @@ class AuthProvider extends ChangeNotifier {
     _setLoading();
     
     try {
-      final user = await _firebaseService.signInWithEmail(
+      final user = await _usersService.signInWithEmail(
         email: email,
         password: password,
       );
@@ -110,21 +115,10 @@ class AuthProvider extends ChangeNotifier {
     _setLoading();
     
     try {
-      await _firebaseService.signOut();
+      await _usersService.signOut();
       _setUnauthenticated();
     } catch (e) {
       _setError(e.toString());
-    }
-  }
-
-  /// Met à jour les données utilisateur
-  Future<void> updateUser(User updatedUser) async {
-    try {
-      await _firebaseService.updateUser(updatedUser);
-      _user = updatedUser;
-      notifyListeners();
-    } catch (e) {
-      _setError('Erreur lors de la mise à jour du profil');
     }
   }
 

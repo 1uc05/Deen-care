@@ -3,6 +3,10 @@ import 'package:caunvo/screens/home_screen.dart';
 import 'package:caunvo/screens/calendar_screen.dart';
 import 'package:caunvo/screens/salon_screen.dart';
 import 'package:caunvo/core/constants/app_colors.dart';
+import 'package:caunvo/providers/auth_provider.dart';
+import 'package:caunvo/providers/session_provider.dart';
+import 'package:caunvo/providers/calendar_provider.dart';
+import 'package:provider/provider.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -13,6 +17,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  bool _isInitialized = false;
   
   final List<Widget> _pages = [
     const HomeScreen(),
@@ -21,7 +26,57 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Initialiser après que le widget soit complètement construit
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeProviders();
+    });
+  }
+
+  Future<void> _initializeProviders() async {
+    if (_isInitialized) return;
+    
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final userId = authProvider.user?.id;
+      
+      if (userId != null) {
+        final sessionProvider = context.read<SessionProvider>();
+        final calendarProvider = context.read<CalendarProvider>();
+        
+        debugPrint('Initialisation des providers pour user: $userId');
+        
+        // Initialisation des providers
+        await sessionProvider.initialize(userId, authProvider.user?.currentSessionId ?? '');
+        await calendarProvider.initialize(userId);
+        
+        // Démarrage des streams
+        sessionProvider.startListening();
+        await calendarProvider.loadAvailableSlots();
+        
+        setState(() {
+          _isInitialized = true;
+        });
+        
+        debugPrint('Providers initialisés avec succès');
+      }
+    } catch (e) {
+      debugPrint('Erreur initialisation providers: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Afficher un loader pendant l'initialisation
+    if (!_isInitialized) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,

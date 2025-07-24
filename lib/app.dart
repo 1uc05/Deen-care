@@ -14,26 +14,20 @@ class CaunvoApp extends StatelessWidget {
     
     final router = GoRouter(
       initialLocation: '/login',
-      refreshListenable: authProvider, // Écoute les changements
+      refreshListenable: authProvider,
       redirect: (context, state) {
         final isLoggedIn = authProvider.isAuthenticated;
         final isLoading = authProvider.state == AuthState.loading;
         final currentRoute = state.matchedLocation;
 
-        debugPrint('Redirect: isLoggedIn=$isLoggedIn, isLoading=$isLoading, currentRoute=$currentRoute');
+        if (isLoading) return null;
 
-        if (isLoading) {
-          debugPrint('En cours de chargement, pas de redirection');
-          return null;
-        }
-
+        // Navigation simple, sans initialisation des providers
         if (isLoggedIn && currentRoute == '/login') {
-          debugPrint('Redirection vers /main');
           return '/main';
         }
         
         if (!isLoggedIn && currentRoute != '/login') {
-          debugPrint('Redirection vers /login');
           return '/login';
         }
         
