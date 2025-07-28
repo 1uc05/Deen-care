@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/slot.dart';
 import '../core/services/firebase/slots_service.dart';
-import '../core/services/firebase/sessions_service.dart';
 
 enum CalendarLoadingState {
   initial,
@@ -19,23 +19,23 @@ enum BookingState {
 
 class CalendarProvider with ChangeNotifier {
   final SlotsService _slotsService;
-  final SessionsService _sessionsService;
 
   // Etat interne
   String? _currentUserId;
   List<Slot> _slots = [];
   String? _errorMessage;
   String? _bookingError;
+
+  // Streams et subscriptions
   Stream<List<Slot>>? _slotsStream;
-  Slot? _currentSlot;
+  StreamSubscription<List<Slot>>? _slotsSubscription;
 
   // États publics
   CalendarLoadingState _loadingState = CalendarLoadingState.initial;
   BookingState _bookingState = BookingState.idle;
 
-  CalendarProvider({SlotsService? slotsService, SessionsService? sessionsService}) 
-    : _slotsService = slotsService ?? SlotsService(),
-      _sessionsService = sessionsService ?? SessionsService();
+  CalendarProvider({SlotsService? slotsService}) 
+    : _slotsService = slotsService ?? SlotsService();
 
   // Getters
   CalendarLoadingState get loadingState => _loadingState;
@@ -43,8 +43,6 @@ class CalendarProvider with ChangeNotifier {
   List<Slot> get slots => List.unmodifiable(_slots);
   String? get errorMessage => _errorMessage;
   String? get bookingError => _bookingError;
-  Slot? get currentSlot => _currentSlot;
-  bool get hasActiveSession => _currentSlot != null;
 
   // Getters de commodité
   bool get isLoading => _loadingState == CalendarLoadingState.loading;
@@ -63,18 +61,10 @@ class CalendarProvider with ChangeNotifier {
   }
 
   Future<void> initialize(String userId) async {
+      _clearError();
+      
     try {
       _currentUserId = userId;
-
-      final currentSlotId = await _sessionsService.getSessionSlotId(userId);
-      debugPrint('Current slot ID: $currentSlotId');
-
-      if (currentSlotId != null) {
-        _currentSlot = await _slotsService.getSlotById(currentSlotId);
-        debugPrint('Current slot: $_currentSlot');
-      } else {
-        _currentSlot = null;
-      }
     } catch (e) {
       _setError('Erreur initialisation: $e');
     }
@@ -110,11 +100,14 @@ class CalendarProvider with ChangeNotifier {
     _clearError();
 
     try {
+      // Nettoyer l'ancien stream avant d'en créer un nouveau
+      await _slotsSubscription?.cancel();
+
       // Obtenir le stream des créneaux
       _slotsStream = _slotsService.getAvailableSlots();
       
       // Écouter les changements en temps réel
-      _slotsStream!.listen(
+      _slotsSubscription = _slotsStream!.listen(
         (slots) {
           _slots = slots;
           if (_loadingState != CalendarLoadingState.loaded) {
@@ -132,100 +125,10 @@ class CalendarProvider with ChangeNotifier {
     }
   }
 
-  /// Force le rafraîchissement des données
-  Future<void> refreshSlots() async {
-    _clearError();
-    
-    try {
-      // Re-déclencher le chargement
-      await loadAvailableSlots();
-    } catch (e) {
-      _setError('Erreur lors de l\'actualisation: $e');
-    }
-  }
-
-  /// Réserve un créneau
-  Future<void> bookSlot(Slot slot) async {
-    if (_bookingState == BookingState.booking) return;
-
-    _setBookingState(BookingState.booking);
-    _clearBookingError();
-
-    try {
-      // Vérifications préalables
-      if (slot.status != SlotStatus.available) {
-        throw Exception('Ce créneau n\'est plus disponible');
-      }
-
-      // Vérification ID non-null avec gestion d'erreur claire
-      if (slot.id == null || slot.id!.isEmpty) {
-        throw Exception('Identifiant du créneau invalide');
-      }
-
-      // Réserver le créneau (création session et update currentSessionId)
-      await _slotsService.bookSlot(slot.id!);
-
-      // Metre à jour currentSlot
-      _currentSlot = slot;
-      
-      _setBookingState(BookingState.success);
-      
-      // Auto-reset du state après 3 secondes
-      Future.delayed(const Duration(seconds: 3), () {
-        if (_bookingState == BookingState.success) {
-          _setBookingState(BookingState.idle);
-        }
-      });
-
-    } catch (e) {
-      _setBookingError('Réservation échouée: $e');
-      rethrow;
-    }
-  }
-
-  /// Annule une réservation
-  Future<void> cancelReservation(String slotId) async {
-    if (_bookingState == BookingState.booking) return;
-
-    _setBookingState(BookingState.booking);
-    _clearBookingError();
-
-    try {
-      await _slotsService.cancelBooking(slotId);
-      _setBookingState(BookingState.success);
-      _currentSlot = null;
-      
-      // Auto-reset du state
-      Future.delayed(const Duration(seconds: 3), () {
-        if (_bookingState == BookingState.success) {
-          _setBookingState(BookingState.idle);
-        }
-      });
-
-    } catch (e) {
-      _setBookingError('Annulation échouée: $e');
-    }
-  }
-
-  Slot? getUserReservation() {
-    return _slots
-        .where((slot) =>
-            slot.reservedBy == _currentUserId &&
-            slot.status == SlotStatus.reserved)
-        .firstOrNull;
-  }
-
   // Méthodes privées de gestion d'état
   void _setLoadingState(CalendarLoadingState state) {
     if (_loadingState != state) {
       _loadingState = state;
-      notifyListeners();
-    }
-  }
-
-  void _setBookingState(BookingState state) {
-    if (_bookingState != state) {
-      _bookingState = state;
       notifyListeners();
     }
   }
@@ -236,11 +139,6 @@ class CalendarProvider with ChangeNotifier {
     _setLoadingState(CalendarLoadingState.error);
   }
 
-  void _setBookingError(String error) {
-    _bookingError = error;
-    debugPrint(error);
-    _setBookingState(BookingState.error);
-  }
 
   void _clearError() {
     if (_errorMessage != null) {
@@ -249,28 +147,27 @@ class CalendarProvider with ChangeNotifier {
     }
   }
 
-  void _clearBookingError() {
-    if (_bookingError != null) {
-      _bookingError = null;
-      notifyListeners();
-    }
-  }
-
   /// Reset complet du provider
-  void reset() {
+  Future<void> reset() async {
+    await _cleanup();
+    _currentUserId = null;
+    _slots.clear();
     _loadingState = CalendarLoadingState.initial;
     _bookingState = BookingState.idle;
-    _slots.clear();
-    _errorMessage = null;
-    _bookingError = null;
-    _slotsStream = null;
-    _currentSlot = null;
+    _clearError();
+    _clearError();
     notifyListeners();
   }
 
+  Future<void> _cleanup() async {
+    await _slotsSubscription?.cancel();
+    _slotsSubscription = null;
+    _slotsStream = null;
+  }
+
   @override
-  void dispose() {
-    // Le stream se ferme automatiquement
+  Future<void> dispose() async {
+    await _cleanup();
     super.dispose();
   }
 }

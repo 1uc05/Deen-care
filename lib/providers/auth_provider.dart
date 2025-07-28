@@ -80,7 +80,7 @@ class AuthProvider extends ChangeNotifier {
       
       // Si l'utilisateur Firebase existe mais pas le document Firestore,
       // on peut essayer de se déconnecter pour éviter un état incohérent
-      if (_usersService.currentFirebaseUser != null) {
+      if (_usersService.currentUser != null) {
         await _usersService.signOut();
       }
     }

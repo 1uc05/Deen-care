@@ -29,7 +29,8 @@ class SessionsService extends FirebaseService {
   /// Récupère une session par ID
   Future<Session?> getSession(String sessionId) async {
     try {
-      validateSessionId(sessionId);
+      validateCurrentUser();
+      _validateSessionId(sessionId);
       
       final doc = await firestore
           .collection(_sessionsCollection)
@@ -44,62 +45,31 @@ class SessionsService extends FirebaseService {
     }
   }
 
-  /// Stream d'une session (pour updates temps réel)
-  Stream<Session?> getSessionStream(String sessionId) {
-    try {
-      validateSessionId(sessionId);
-      
-      return firestore
-          .collection(_sessionsCollection)
-          .doc(sessionId)
-          .snapshots()
-          .map((doc) {
-        if (!doc.exists) return null;
-        return Session.fromFirestore(doc);
-      });
-    } catch (e) {
-      throw handleFirestoreException(e, 'stream de session');
-    }
-  }
-
   /// Récupère les sessions d'un utilisateur
-  Stream<List<Session>> getUserSessions(String userId) {
+  Future<List<Session>> getUserSessions() async {
     try {
-      validateUserId(userId);
-      
-      return firestore
+      validateCurrentUser();
+
+      final snapshot = await firestore
           .collection(_sessionsCollection)
-          .where('userId', isEqualTo: userId)
+          .where('userId', isEqualTo: currentUserId)
           .orderBy('startedAt', descending: true)
-          .snapshots()
-          .map((snapshot) {
-        return snapshot.docs.map((doc) {
-          return Session.fromFirestore(doc);
-        }).toList();
-      });
+          .get();
+      
+      return snapshot.docs.map((doc) {
+        return Session.fromFirestore(doc);
+      }).toList();
+      
     } catch (e) {
       throw handleFirestoreException(e, 'récupération sessions utilisateur');
     }
   }
 
-  /// Récupère la session active d'un utilisateur (scheduled ou active)
-  Future<Session?> getUserActiveSession(String userId) async {
-    try {
-      final querySnapshot = await _getUserActiveSessionQuery(userId).get();
-      
-      return querySnapshot.docs.isEmpty 
-          ? null 
-          : Session.fromFirestore(querySnapshot.docs.first);
-          
-    } catch (e) {
-      throw handleFirestoreException(e, 'récupération session active utilisateur');
-    }
-  }
-
   /// Stream de la session active d'un utilisateur  
-  Stream<Session?> getUserActiveSessionStream(String userId) {
+  Stream<Session?> getUserActiveSessionStream() {
     try {
-      return _getUserActiveSessionQuery(userId)
+      validateCurrentUser();
+      return _getUserActiveSessionQuery()
           .snapshots()
           .map((snapshot) => snapshot.docs.isEmpty 
               ? null 
@@ -110,30 +80,11 @@ class SessionsService extends FirebaseService {
     }
   }
 
-  /// Récupère uniquement le slotId d'une session spécifique
-  Future<String?> getSessionSlotId(String sessionId) async {
-    try {
-      final sessionDoc = await firestore
-          .collection(_sessionsCollection)
-          .doc(sessionId)
-          .get();
-
-      if (!sessionDoc.exists) return null;
-
-      // Récupère slotId ou null si absent
-      return sessionDoc.data()?['slotId'] as String?;
-      
-    } catch (e) {
-      throw handleFirestoreException(e, 'récupération slotId de la session');
-    }
-  }
-
-
   /// Met à jour le statut d'une session
   Future<void> updateSessionStatus(String sessionId, String newStatus) async {
     try {
       validateCurrentUser();
-      validateSessionId(sessionId);
+      _validateSessionId(sessionId);
       
       // Vérifier que le statut est valide
       if (!_isValidStatus(newStatus)) {
@@ -151,56 +102,11 @@ class SessionsService extends FirebaseService {
     }
   }
 
-  /// Démarre une session (passe de scheduled à active)
-  Future<void> startSession(String sessionId) async {
-    try {
-      validateCurrentUser();
-      
-      // Vérifier que la session existe et est programmée
-      final session = await getSession(sessionId);
-      if (session == null) {
-        throw Exception('Session introuvable');
-      }
-      
-      if (!session.isScheduled) {
-        throw Exception('La session ne peut pas être démarrée (statut: ${session.status})');
-      }
-
-      await updateSessionStatus(sessionId, SessionStatus.active);
-    } catch (e) {
-      throw handleFirestoreException(e, 'démarrage de session');
-    }
-  }
-
-  /// Termine une session (passe à completed)
-  Future<void> completeSession(String sessionId) async {
-    try {
-      validateCurrentUser();
-      
-      // Vérifier que la session existe et est active
-      final session = await getSession(sessionId);
-      if (session == null) {
-        throw Exception('Session introuvable');
-      }
-      
-      if (!session.isActive) {
-        throw Exception('Seules les sessions actives peuvent être terminées');
-      }
-
-      // Nettoyer currentSessionId des participants
-      await _cleanupUsersSessions(session);
-
-      await updateSessionStatus(sessionId, SessionStatus.completed);
-    } catch (e) {
-      throw handleFirestoreException(e, 'fin de session');
-    }
-  }
-
   /// Supprime une session (pour annulations)
   Future<void> deleteSession(String sessionId) async {
     try {
       validateCurrentUser();
-      validateSessionId(sessionId);
+      _validateSessionId(sessionId);
       
       // Supprimer tous les messages de la session
       await _deleteSessionMessages(sessionId);
@@ -222,7 +128,7 @@ class SessionsService extends FirebaseService {
   }) async {
     try {
       validateCurrentUser();
-      validateSessionId(sessionId);
+      _validateSessionId(sessionId);
       
       if (text.trim().isEmpty) {
         throw ArgumentError('Le message ne peut pas être vide');
@@ -245,7 +151,7 @@ class SessionsService extends FirebaseService {
   /// Stream des messages d'une session
   Stream<List<Message>> getSessionMessages(String sessionId) {
     try {
-      validateSessionId(sessionId);
+      _validateSessionId(sessionId);
       
       return firestore
           .collection(_sessionsCollection)
@@ -255,7 +161,7 @@ class SessionsService extends FirebaseService {
           .snapshots()
           .map((snapshot) {
         return snapshot.docs.map((doc) {
-          return Message.fromFirestore(doc); // ✅ Assumons ce constructeur
+          return Message.fromFirestore(doc);
         }).toList();
       });
     } catch (e) {
@@ -264,38 +170,27 @@ class SessionsService extends FirebaseService {
   }
 
   /// Query commune pour éviter la duplication
-  Query<Map<String, dynamic>> _getUserActiveSessionQuery(String userId) {
-    validateUserId(userId);
-    
-    return firestore
-        .collection(_sessionsCollection)
-        .where('userId', isEqualTo: userId)
-        .where('status', whereIn: [SessionStatus.scheduled, SessionStatus.active])
-        .limit(1);
+  Query<Map<String, dynamic>> _getUserActiveSessionQuery() {
+    try {
+      validateCurrentUser();
+
+      return firestore
+          .collection(_sessionsCollection)
+          .where('userId', isEqualTo: currentUserId)
+          .where('status', whereIn: [SessionStatus.scheduled, SessionStatus.inProgress])
+          .limit(1);
+    } catch (e) {
+      throw handleFirestoreException(e, 'query session active utilisateur');
+    }
   }
 
   /// Vérifie si un statut est valide
   bool _isValidStatus(String status) {
     return [
       SessionStatus.scheduled,
-      SessionStatus.active,
+      SessionStatus.inProgress,
       SessionStatus.completed,
     ].contains(status);
-  }
-
-  /// Nettoie currentSessionId des utilisateurs participants
-  Future<void> _cleanupUsersSessions(Session session) async {
-    final batch = firestore.batch();
-    
-    // Nettoyer pour le client
-    final clientRef = firestore.collection('users').doc(session.userId);
-    batch.update(clientRef, {'currentSessionId': null});
-    
-    // Nettoyer pour le coach
-    final coachRef = firestore.collection('users').doc(session.coachId);
-    batch.update(coachRef, {'currentSessionId': null});
-    
-    await batch.commit();
   }
 
   /// Supprime tous les messages d'une session
@@ -315,7 +210,7 @@ class SessionsService extends FirebaseService {
   }
 
   /// Validation spécifique session
-  void validateSessionId(String sessionId) {
+  void _validateSessionId(String sessionId) {
     if (sessionId.trim().isEmpty) {
       throw ArgumentError('ID de session requis');
     }

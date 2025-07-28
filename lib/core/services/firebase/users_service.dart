@@ -96,7 +96,7 @@ class UsersService extends FirebaseService {
   /// Récupération de l'utilisateur actuel depuis Firestore
   Future<app_models.User?> getCurrentUser() async {
     try {
-      final firebaseUser = currentFirebaseUser;
+      final firebaseUser = currentUser;
       if (firebaseUser == null) return null;
 
       final userDoc = await firestore
@@ -125,6 +125,19 @@ class UsersService extends FirebaseService {
           .update(user.toJson());
     } catch (e) {
       throw handleFirestoreException(e, 'mise à jour utilisateur');
+    }
+  }
+
+  /// Mise à jour de l'ID de session actuelle de l'utilisateur
+  Future<void> updateCurrentSessionId(String sessionId) async {
+    try {
+      validateCurrentUser();
+      final userId = currentUser!.uid;
+      await firestore.collection(_collection).doc(userId).update({
+        'currentSessionId': sessionId,
+      });
+    } catch (e) {
+      throw handleFirestoreException(e, 'mise à jour ID de session');
     }
   }
 

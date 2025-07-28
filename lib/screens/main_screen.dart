@@ -3,6 +3,7 @@ import 'package:caunvo/screens/home_screen.dart';
 import 'package:caunvo/screens/calendar_screen.dart';
 import 'package:caunvo/screens/salon_screen.dart';
 import 'package:caunvo/core/constants/app_colors.dart';
+import 'package:caunvo/providers/navigation_provider.dart';
 import 'package:caunvo/providers/auth_provider.dart';
 import 'package:caunvo/providers/session_provider.dart';
 import 'package:caunvo/providers/calendar_provider.dart';
@@ -16,7 +17,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
   bool _isInitialized = false;
   
   final List<Widget> _pages = [
@@ -28,7 +28,6 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialiser après que le widget soit complètement construit
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeProviders();
     });
@@ -44,15 +43,14 @@ class _MainScreenState extends State<MainScreen> {
       if (userId != null) {
         final sessionProvider = context.read<SessionProvider>();
         final calendarProvider = context.read<CalendarProvider>();
-        
-        debugPrint('Initialisation des providers pour user: $userId');
-        
-        // Initialisation des providers
-        await sessionProvider.initialize(userId, authProvider.user?.currentSessionId ?? '');
+
+        debugPrint('Initialisation des providers pour user: ${authProvider.user?.name}');
+
+        // Initialisation des providers  et démarrage des streams
+        await sessionProvider.initialize(userId);
         await calendarProvider.initialize(userId);
-        
-        // Démarrage des streams
-        sessionProvider.startListening();
+
+        // Chargement des créneaux disponibles
         await calendarProvider.loadAvailableSlots();
         
         setState(() {
@@ -77,23 +75,27 @@ class _MainScreenState extends State<MainScreen> {
       );
     }
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.highLight,
-        unselectedItemColor: AppColors.textGrey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Réservation'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Salon'),
-        ],
-      ),
+    return Consumer<NavigationProvider>(
+      builder: (context, navigationProvider, child) {
+        return Scaffold(
+          body: IndexedStack(
+            index: navigationProvider.currentIndex,
+            children: _pages,
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: navigationProvider.currentIndex,
+            onTap: (index) => navigationProvider.setIndex(index),
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: AppColors.highLight,
+            unselectedItemColor: AppColors.textGrey,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+              BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Réservation'),
+              BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Salon'),
+            ],
+          ),
+        );
+      },
     );
   }
 }

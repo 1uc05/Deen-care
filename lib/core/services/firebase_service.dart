@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:flutter/foundation.dart';
 
 abstract class FirebaseService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -10,7 +11,8 @@ abstract class FirebaseService {
   firebase_auth.FirebaseAuth get auth => _auth;
 
   // Getter pour l'utilisateur actuel
-  firebase_auth.User? get currentFirebaseUser => _auth.currentUser;
+  firebase_auth.User? get currentUser => _auth.currentUser;
+  String? get currentUserId => _auth.currentUser?.uid;
 
   // Gestion centralisée des erreurs Firestore
   Exception handleFirestoreException(dynamic e, String operation) {
@@ -28,8 +30,15 @@ abstract class FirebaseService {
           return Exception('Erreur Firestore ($operation): ${e.message}');
       }
     }
+    debugPrint('Erreur lors de $operation: $e');
     return Exception('Erreur lors de $operation: $e');
   }
+
+  void setError(String error) {
+    debugPrint(error);
+    throw Exception(error);
+  }
+  
 
   // Validation communes
   void validateUserId(String? userId) {
@@ -39,7 +48,7 @@ abstract class FirebaseService {
   }
 
   void validateCurrentUser() {
-    if (currentFirebaseUser == null) {
+    if (currentUser == null) {
       throw Exception('Utilisateur non connecté');
     }
   }

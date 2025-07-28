@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/session_provider.dart';
+import '../providers/calendar_provider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -14,7 +16,7 @@ class HomeScreen extends StatelessWidget {
           actions: [
             IconButton(
               icon: const Icon(Icons.logout),
-              onPressed: () => context.read<AuthProvider>().signOut(),
+              onPressed: () => _signOut(context),
             ),
           ],
         ),
@@ -38,4 +40,19 @@ class HomeScreen extends StatelessWidget {
       ],
     );
   }
+
+  Future<void> _signOut(BuildContext context) async {
+  try {
+    // Nettoyer les providers avant la déconnexion
+    debugPrint('Nettoyage des providers avant la déconnexion');
+
+    await context.read<SessionProvider>().reset();
+    await context.read<CalendarProvider>().reset();
+
+    await context.read<AuthProvider>().signOut();
+    
+  } catch (e) {
+    debugPrint('Erreur déconnexion: $e');
+  }
+}
 }

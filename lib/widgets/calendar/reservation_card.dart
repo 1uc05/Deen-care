@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import '../../models/slot.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 
 class ReservationCard extends StatelessWidget {
-  final Slot reservedSlot;
+  final DateTime startTime;
+  final DateTime endTime;
   final VoidCallback onCancel;
   final VoidCallback onGoToSalon;
   final bool isLoading;
 
   const ReservationCard({
     super.key,
-    required this.reservedSlot,
+    required this.startTime,
+    required this.endTime,
     required this.onCancel,
     required this.onGoToSalon,
     this.isLoading = false,
@@ -108,7 +109,7 @@ class ReservationCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      AppDateUtils.formatFullDate(reservedSlot.startTime),
+                      AppDateUtils.formatFullDate(startTime),
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
@@ -125,7 +126,7 @@ class ReservationCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${AppDateUtils.formatTime(reservedSlot.startTime)} - ${AppDateUtils.formatTime(reservedSlot.endTime)}',
+                      '${AppDateUtils.formatTime(startTime)} - ${AppDateUtils.formatTime(endTime)}',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),

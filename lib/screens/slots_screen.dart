@@ -39,10 +39,10 @@ class _SlotsScreenState extends State<SlotsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // En-tête avec la date sélectionnée
-          Consumer<CalendarProvider>(
-            builder: (context, calendarProvider, child) {
-              final hasActiveSession = calendarProvider.hasActiveSession;
-              
+          Consumer<SessionProvider>(
+            builder: (context, sessionProvider, child) {
+              final hasActiveSession = sessionProvider.hasActiveSession();
+
               return Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -98,7 +98,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Terminez votre session actuelle pour réserver',
+                              'Vous ne pouvez pas réserver plusieurs créneaux',
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Colors.orange.shade700,
                                 fontWeight: FontWeight.w500,
@@ -116,8 +116,8 @@ class _SlotsScreenState extends State<SlotsScreen> {
 
           // Liste des créneaux
           Expanded(
-            child: Consumer<CalendarProvider>(
-              builder: (context, calendarProvider, child) {
+            child: Consumer2<CalendarProvider, SessionProvider>(
+              builder: (context, calendarProvider, sessionProvider, child) {
                 if (calendarProvider.isLoading) {
                   return const Center(
                     child: CircularProgressIndicator(
@@ -133,7 +133,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                   return _buildEmptyState();
                 }
 
-                final hasActiveSession = calendarProvider.hasActiveSession;
+                final hasActiveSession = sessionProvider.hasActiveSession();
 
                 return ListView.separated(
                   padding: const EdgeInsets.all(16),
@@ -141,7 +141,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                   separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final slot = daySlots[index];
-                    return _buildSlotItem(slot, isBlocked: hasActiveSession); // ✅ Passer le statut
+                    return _buildSlotItem(slot, isBlocked: hasActiveSession);
                   },
                 );
               },
@@ -152,17 +152,17 @@ class _SlotsScreenState extends State<SlotsScreen> {
     );
   }
 
-  Widget _buildSlotItem(Slot slot, {required bool isBlocked}) { // ✅ Paramètre ajouté
+  Widget _buildSlotItem(Slot slot, {required bool isBlocked}) {
     final startTime = AppDateUtils.formatTime(slot.startTime);
     final endTime = AppDateUtils.formatTime(slot.endTime);
 
     return Card(
-      elevation: isBlocked ? 1 : 2, // ✅ Élévation réduite si bloqué
+      elevation: isBlocked ? 1 : 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
-        onTap: (isBlocked || _isBooking) ? null : () => _showBookingConfirmation(slot), // ✅ Condition modifiée
+        onTap: (isBlocked || _isBooking) ? null : () => _showBookingConfirmation(slot),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(20),
@@ -170,7 +170,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isBlocked 
-                ? Colors.grey.shade300 // ✅ Bordure grise si bloqué
+                ? Colors.grey.shade300
                 : AppColors.highLight.withOpacity(0.2),
               width: 1,
             ),
@@ -183,12 +183,12 @@ class _SlotsScreenState extends State<SlotsScreen> {
                 height: 48,
                 decoration: BoxDecoration(
                   color: isBlocked
-                    ? Colors.grey.shade100 // ✅ Couleur terne si bloqué
+                    ? Colors.grey.shade100
                     : AppColors.highLight.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Icon(
-                  isBlocked ? Icons.lock_outline : Icons.access_time, // ✅ Icône différente
+                  isBlocked ? Icons.lock_outline : Icons.access_time,
                   color: isBlocked
                     ? Colors.grey.shade400
                     : AppColors.highLight,
@@ -206,7 +206,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                       startTime,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: isBlocked
-                          ? Colors.grey.shade500 // ✅ Texte gris si bloqué
+                          ? Colors.grey.shade500
                           : AppColors.highLight,
                         fontWeight: FontWeight.w600,
                       ),
@@ -214,7 +214,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                     const SizedBox(height: 4),
                     Text(
                       isBlocked 
-                        ? 'Non disponible - Session en cours' // ✅ Texte différent
+                        ? 'Non disponible'
                         : 'Durée: $startTime - $endTime (30 min)',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: isBlocked
@@ -238,7 +238,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                 )
               else if (isBlocked)
                 Icon(
-                  Icons.block, // ✅ Icône de blocage
+                  Icons.block,
                   color: Colors.grey.shade400,
                   size: 20,
                 )
@@ -254,8 +254,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
       ),
     );
   }
-
-  // Le reste des méthodes restent identiques...
+  
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -312,9 +311,9 @@ class _SlotsScreenState extends State<SlotsScreen> {
     setState(() => _isBooking = true);
 
     try {
-      final calendarProvider = context.read<CalendarProvider>();
+      final sessionsProvider = context.read<SessionProvider>();
 
-      await calendarProvider.bookSlot(slot);
+      await sessionsProvider.bookSlot(slot);
 
       if (mounted) {
         // Afficher un message de succès

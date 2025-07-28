@@ -1,13 +1,12 @@
-import 'package:caunvo/models/session.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../widgets/calendar/month_calendar.dart';
+import '../providers/navigation_provider.dart';
 import '../providers/calendar_provider.dart';
 import '../providers/session_provider.dart';
 import '../core/constants/app_colors.dart';
 import 'slots_screen.dart';
 import '../widgets/calendar/reservation_card.dart';
-import '../models/slot.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -36,7 +35,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   
-  Future<void> _cancelReservation(Slot slot) async {
+  Future<void> _cancelReservation() async {
     // Confirmer l'annulation
     final confirmed = await showDialog<bool>(
       context: context,
@@ -58,7 +57,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     if (confirmed == true) {
       try {
-        await context.read<CalendarProvider>().cancelReservation(slot.id!);
+        await context.read<SessionProvider>().cancelSlot();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -79,13 +78,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       }
     }
   }
-
-  void _goToSalon(Slot slot) {
-    // Navigation vers le salon
-    // Navigator.push(context, MaterialPageRoute(builder: (context) => SalonScreen(sessionId: slot.sessionId)));
-    print('Navigation vers salon: ${slot.sessionId}');
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -153,18 +145,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Instructions pour l'utilisateur
-                    Consumer<CalendarProvider>(
+                    Consumer<SessionProvider>(
                       builder: (context, provider, child) {
-                        final userReservation = provider.currentSlot;
 
-                        debugPrint('User reservation: $userReservation');
-                        
-                        if (userReservation != null) {
+                        if (provider.hasActiveSession()) {
                           // Afficher la carte de réservation
                           return ReservationCard(
-                            reservedSlot: userReservation,
-                            onCancel: () => _cancelReservation(userReservation),
-                            onGoToSalon: () => _goToSalon(userReservation),
+                            startTime: provider.currentSessionStartTime!,
+                            endTime: provider.currentSessionEndTime!,
+                            onCancel: () => _cancelReservation(),
+                            onGoToSalon: () => context.read<NavigationProvider>().goToSalon(),
                             isLoading: provider.isLoading,
                           );
                         } else {

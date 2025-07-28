@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 // Constantes pour les statuts
 class SessionStatus {
   static const String scheduled = 'scheduled';
-  static const String active = 'active';
+  static const String inProgress = 'inProgress';
   static const String completed = 'completed';
 }
 
@@ -15,6 +15,8 @@ class Session {
   final String status;
   final Timestamp? startedAt;
   final String agoraChannelId;
+  final DateTime startTime;
+  final DateTime endTime;
 
   const Session({
     required this.id,
@@ -24,6 +26,8 @@ class Session {
     required this.status,
     this.startedAt,
     required this.agoraChannelId,
+    required this.startTime,
+    required this.endTime,
   });
 
   // Factory depuis Firestore
@@ -37,6 +41,8 @@ class Session {
       status: data['status'] ?? 'scheduled',
       startedAt: data['startedAt'],
       agoraChannelId: data['agoraChannelId'] ?? '',
+      startTime: (data['startTime'] as Timestamp).toDate(),
+      endTime: (data['endTime'] as Timestamp).toDate(),
     );
   }
 
@@ -48,6 +54,8 @@ class Session {
       'slotId': slotId,
       'status': status,
       'agoraChannelId': agoraChannelId,
+      'startTime': Timestamp.fromDate(startTime),
+      'endTime': Timestamp.fromDate(endTime),
     };
     
     if (startedAt != null) {
@@ -57,12 +65,19 @@ class Session {
     return map;
   }
 
-
-
   // Helpers pour les statuts
   bool get isScheduled => status == SessionStatus.scheduled;
-  bool get isActive => status == SessionStatus.active;
+  bool get isInProgress => status == SessionStatus.inProgress;
   bool get isCompleted => status == SessionStatus.completed;
+
+  // Helpers pour les horaires
+  Duration get duration => endTime.difference(startTime);
+  bool get isNow {
+    final now = DateTime.now();
+    return now.isAfter(startTime) && now.isBefore(endTime);
+  }
+  bool get isPast => DateTime.now().isAfter(endTime);
+  bool get isFuture => DateTime.now().isBefore(startTime);
 
   // copyWith pour modifications
   Session copyWith({
@@ -73,6 +88,8 @@ class Session {
     String? status,
     Timestamp? startedAt,
     String? agoraChannelId,
+    DateTime? startTime,
+    DateTime? endTime,
   }) {
     return Session(
       id: id ?? this.id,
@@ -82,11 +99,13 @@ class Session {
       status: status ?? this.status,
       startedAt: startedAt ?? this.startedAt,
       agoraChannelId: agoraChannelId ?? this.agoraChannelId,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
     );
   }
 
   @override
   String toString() {
-    return 'Session(id: $id, status: $status, slotId: $slotId)';
+    return 'Session(id: $id, status: $status, slotId: $slotId, startTime: $startTime, endTime: $endTime)';
   }
 }
