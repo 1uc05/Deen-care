@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/session.dart';
 import '../models/slot.dart';
 import '../core/services/firebase/sessions_service.dart';
@@ -24,7 +24,12 @@ class SessionProvider extends ChangeNotifier {
   StreamSubscription<Session?>? _activeSessionSubscription;
   StreamSubscription<List<Session>>? _historySubscription;
 
+  // Timer pour refresh automatique
+  Timer? _statusTimer;
+
   // Getters publics
+  Session? get currentSession => _currentSession;
+  String? get currentSessionStatus => _currentSession?.effectiveStatus;
   List<Session> get userSessionHistory => _userSessionHistory;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -132,7 +137,7 @@ class SessionProvider extends ChangeNotifier {
 
   /// Démarre une session (scheduled → inProgress)
   Future<void> startSession() async {
-    if (_currentSession == null || _currentSession!.isInProgress) {
+    if (_currentSession == null || !_currentSession!.isScheduled) {
       _setError('Aucune session active à démarrer');
     }
 
@@ -154,7 +159,7 @@ class SessionProvider extends ChangeNotifier {
 
   /// Termine une session (inProgress → completed)
   Future<void> completeSession() async {
-    if (_currentSession == null || _currentSession!.isCompleted) {
+    if (_currentSession == null || !_currentSession!.isInProgress) {
       _setError('Aucune session active à terminer');
     }
 
@@ -245,12 +250,85 @@ class SessionProvider extends ChangeNotifier {
         .listen(
       (session) {
         _currentSession = session;
+
+        if (session?.needsStatusSync() == true) {
+          _autoCompleteExpiredSession(session!);
+        }
+
+        _startStatusTimer();
+
         notifyListeners();
       },
       onError: (e) {
         _setError('Erreur stream session active: $e');
       },
     );
+  }
+
+  /// Auto-completion des sessions expirées
+  Future<void> _autoCompleteExpiredSession(Session session) async {
+    try {
+      debugPrint('Auto-completion session expirée: ${session.id}');
+      await _sessionsService.updateSessionStatus(
+        session.id, 
+        SessionStatus.completed
+      );
+
+    _currentSession = session.copyWith(status: SessionStatus.completed);
+
+      // Le stream recevra automatiquement la mise à jour
+    } catch (e) {
+      debugPrint('Erreur auto-completion: $e');
+      // Pas critique, l'UI affiche quand même le bon status
+    }
+  }
+
+  /// Timer pour refresh l'UI aux transitions
+  void _startStatusTimer() {
+    _statusTimer?.cancel();
+    
+    if (_currentSession == null) return;
+    
+    final now = DateTime.now();
+    Duration? nextTransition;
+    String? nextStatus;
+    
+    // Calculer la prochaine transition ET le nouveau status
+    if (now.isBefore(_currentSession!.startTime)) {
+      nextTransition = _currentSession!.startTime.difference(now);
+      nextStatus = SessionStatus.inProgress;
+    } else if (now.isBefore(_currentSession!.endTime)) {
+      nextTransition = _currentSession!.endTime.difference(now);
+      nextStatus = SessionStatus.completed;
+    }
+    
+    if (nextTransition != null && nextStatus != null) {
+    final timerDuration = nextTransition + Duration(seconds: 1);
+    
+    _statusTimer = Timer(timerDuration, () {
+      debugPrint('Transition automatique vers: $nextStatus');
+      
+      _autoUpdateSessionStatus(nextStatus!);
+      
+      _startStatusTimer(); // Planifie la prochaine
+    });
+  }
+  }
+
+  /// Met à jour le statut de la session automatiquement
+  Future<void> _autoUpdateSessionStatus(String newStatus) async {
+    if (_currentSession == null) return;
+    
+    try {
+      await _sessionsService.updateSessionStatus(
+        _currentSession!.id, 
+        newStatus
+      );
+      _currentSession = _currentSession!.copyWith(status: newStatus);
+    } catch (e) {
+      debugPrint('Erreur auto-update status: $e');
+      // Même si ça échoue, l'UI reste cohérente avec effectiveStatus
+    }
   }
 
   /// Ajoute une nouvelle session à l'historique quand elle se termine
@@ -292,10 +370,12 @@ class SessionProvider extends ChangeNotifier {
 
   /// Nettoie les streams
   Future<void> _cleanup() async {
+    _statusTimer?.cancel();
     await _activeSessionSubscription?.cancel();
     await _historySubscription?.cancel();
     _activeSessionSubscription = null;
     _historySubscription = null;
+    _statusTimer = null;
   }
 
   /// Nettoyage

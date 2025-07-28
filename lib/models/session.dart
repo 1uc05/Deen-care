@@ -12,7 +12,7 @@ class Session {
   final String userId;
   final String coachId;
   final String slotId;
-  final String status;
+  final String status; // Status officiel en DB
   final Timestamp? startedAt;
   final String agoraChannelId;
   final DateTime startTime;
@@ -29,6 +29,41 @@ class Session {
     required this.startTime,
     required this.endTime,
   });
+
+  // Status calculé basé sur l'heure + status DB
+  String get effectiveStatus {
+    final now = DateTime.now();
+    
+    // Si la session est terminée en DB, elle reste terminée
+    if (status == SessionStatus.completed) {
+      return SessionStatus.completed;
+    }
+    
+    // Calcul basé sur l'heure actuelle
+    if (now.isBefore(startTime)) {
+      return SessionStatus.scheduled;
+    } else if (now.isAfter(endTime)) {
+      return SessionStatus.completed; // Auto-expire
+    } else {
+      return SessionStatus.inProgress; // Entre start et end
+    }
+  }
+
+  // Helpers basés sur le status effectif
+  bool get isScheduled => effectiveStatus == SessionStatus.scheduled;
+  bool get isInProgress => effectiveStatus == SessionStatus.inProgress;
+  bool get isCompleted => effectiveStatus == SessionStatus.completed;
+
+  // Helpers temporels
+  Duration get duration => endTime.difference(startTime);
+  bool get isNow => isInProgress;
+  bool get isPast => isCompleted;
+  bool get isFuture => isScheduled;
+
+  // Utilitaire pour sync DB
+  bool needsStatusSync() {
+    return status != effectiveStatus && effectiveStatus == SessionStatus.completed;
+  }
 
   // Factory depuis Firestore
   factory Session.fromFirestore(DocumentSnapshot doc) {
@@ -65,20 +100,6 @@ class Session {
     return map;
   }
 
-  // Helpers pour les statuts
-  bool get isScheduled => status == SessionStatus.scheduled;
-  bool get isInProgress => status == SessionStatus.inProgress;
-  bool get isCompleted => status == SessionStatus.completed;
-
-  // Helpers pour les horaires
-  Duration get duration => endTime.difference(startTime);
-  bool get isNow {
-    final now = DateTime.now();
-    return now.isAfter(startTime) && now.isBefore(endTime);
-  }
-  bool get isPast => DateTime.now().isAfter(endTime);
-  bool get isFuture => DateTime.now().isBefore(startTime);
-
   // copyWith pour modifications
   Session copyWith({
     String? id,
@@ -106,6 +127,6 @@ class Session {
 
   @override
   String toString() {
-    return 'Session(id: $id, status: $status, slotId: $slotId, startTime: $startTime, endTime: $endTime)';
+    return 'Session(id: $id, status: $status->$effectiveStatus, slotId: $slotId, startTime: $startTime, endTime: $endTime)';
   }
 }
