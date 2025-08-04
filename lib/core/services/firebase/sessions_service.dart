@@ -1,4 +1,6 @@
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../firebase_service.dart';
 import '../../../models/session.dart';
 import '../../../models/message.dart';
@@ -37,8 +39,11 @@ class SessionsService extends FirebaseService {
           .doc(sessionId)
           .get();
 
-      if (!doc.exists) return null;
-      
+      if (!doc.exists) {
+        debugPrint('SessionService: No session found with id $sessionId');
+        return null;
+      }
+
       return Session.fromFirestore(doc);
     } catch (e) {
       throw handleFirestoreException(e, 'récupération de session');
@@ -65,16 +70,15 @@ class SessionsService extends FirebaseService {
     }
   }
 
-  /// Stream de la session active d'un utilisateur  
-  Stream<Session?> getUserActiveSessionStream() {
+  /// Stream de la session active d'un utilisateur
+  Stream<Session?> getActiveSessionStream() {
     try {
       validateCurrentUser();
-      return _getUserActiveSessionQuery()
+      return _getActiveSessionQuery()
           .snapshots()
           .map((snapshot) => snapshot.docs.isEmpty 
               ? null 
               : Session.fromFirestore(snapshot.docs.first));
-              
     } catch (e) {
       throw handleFirestoreException(e, 'stream session active utilisateur');
     }
@@ -170,7 +174,7 @@ class SessionsService extends FirebaseService {
   }
 
   /// Query commune pour éviter la duplication
-  Query<Map<String, dynamic>> _getUserActiveSessionQuery() {
+  Query<Map<String, dynamic>> _getActiveSessionQuery() {
     try {
       validateCurrentUser();
 

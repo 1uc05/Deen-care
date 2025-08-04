@@ -6,15 +6,15 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // UX
-  static const Duration sessionDuration = Duration(hours: 1);
+  static const Duration sessionDuration = Duration(minutes: 30);
 
   // Date Formats
   static const String dateFormat      = 'dd/MM/yyyy';
   static const String timeFormat      = 'HH:mm';
   static const String dateTimeFormat  = 'dd/MM/yyyy à HH:mm';
 
-  // Calendly
-  // static const String calendlyBaseUrl       = 'https://api.calendly.com/v2';
-  // static String get   calendlyAccessToken   => dotenv.env['CALENDLY_ACCESS_TOKEN'] ?? '';
-  // static const String calendlyEventTypeUuid = 'YOUR_EVENT_TYPE_UUID';
+  // Agora
+  static String get   agoraDevToken   => dotenv.env['AGORA_USR_DEV_TOKEN'] ?? '';
+  static const String agoraAppID      = '38cea02d0d594ca1956bb1301d7e9676';
+  static const String agoraAppKey     = '711376348#1582345';
 }

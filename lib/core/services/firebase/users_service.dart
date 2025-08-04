@@ -115,6 +115,27 @@ class UsersService extends FirebaseService {
     }
   }
 
+  /// Récupération de l'utilisateur actuel depuis Firestore
+  Future<String?> getCurrentSessionId() async {
+    try {
+      final firebaseUser = currentUser;
+      if (firebaseUser == null) return null;
+
+      final userDoc = await firestore
+          .collection(_collection)
+          .doc(firebaseUser.uid)
+          .get();
+
+      if (!userDoc.exists) return null;
+
+      final userData = userDoc.data()!;
+      return userData['currentSessionId'] as String?;
+      
+    } catch (e) {
+      throw handleFirestoreException(e, 'récupération session ID');
+    }
+  }
+
   /// Mise à jour des données utilisateur
   Future<void> updateUser(app_models.User user) async {
     try {
@@ -132,12 +153,23 @@ class UsersService extends FirebaseService {
   Future<void> updateCurrentSessionId(String sessionId) async {
     try {
       validateCurrentUser();
-      final userId = currentUser!.uid;
-      await firestore.collection(_collection).doc(userId).update({
+      await firestore.collection(_collection).doc(currentUserId).update({
         'currentSessionId': sessionId,
       });
     } catch (e) {
       throw handleFirestoreException(e, 'mise à jour ID de session');
+    }
+  }
+
+  /// Supprime la session en cours de l'utilisateur
+  Future<void> clearCurrentSessionId() async {
+    try {
+      validateCurrentUser();
+      await firestore.collection(_collection).doc(currentUserId).update({
+        'currentSessionId': null,
+      });
+    } catch (e) {
+      throw handleFirestoreException(e, 'suppression ID de session');
     }
   }
 

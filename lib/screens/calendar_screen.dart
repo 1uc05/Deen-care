@@ -154,7 +154,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             startTime: provider.currentSessionStartTime!,
                             endTime: provider.currentSessionEndTime!,
                             onCancel: () => _cancelReservation(),
-                            onGoToSalon: () => context.read<NavigationProvider>().goToSalon(),
+                            onGoToRoom: () => context.read<NavigationProvider>().goToRoom(),
                             isLoading: provider.isLoading,
                           );
                         } else {

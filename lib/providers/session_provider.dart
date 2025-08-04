@@ -1,16 +1,21 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:agora_chat_sdk/agora_chat_sdk.dart';
 import '../models/session.dart';
 import '../models/slot.dart';
 import '../core/services/firebase/sessions_service.dart';
 import '../core/services/firebase/slots_service.dart';
 import '../core/services/firebase/users_service.dart';
+import '../core/services/agora_service.dart';
+import '../models/voice_call_state.dart';
+import '../models/message.dart';
 
 class SessionProvider extends ChangeNotifier {
   final SessionsService _sessionsService = SessionsService();
   final SlotsService _slotsService = SlotsService();
   final UsersService _usersService = UsersService();
+  final AgoraService _agoraService = AgoraService();
 
   // État interne
   String? _currentUserId;
@@ -19,10 +24,17 @@ class SessionProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _historyLoaded = false;
+  bool _isInitialized     = false;
+  RoomConnectionState _connectionState = RoomConnectionState.disconnected;
+  VoiceCallState _voiceCallState = VoiceCallState.idle;
+  List<Message> _messages = [];
+  bool _isLoadingMessages = false;
 
   // Streams et subscriptions
-  StreamSubscription<Session?>? _activeSessionSubscription;
-  StreamSubscription<List<Session>>? _historySubscription;
+  StreamSubscription<Session?>? _activeSessionStream;
+  StreamSubscription<List<Session>>? _historyStream;
+  StreamSubscription<ChatMessage>? _rawMessageStream;
+  StreamSubscription<VoiceConnectionState>? _voiceStateSream;
 
   // Timer pour refresh automatique
   Timer? _statusTimer;
@@ -35,9 +47,46 @@ class SessionProvider extends ChangeNotifier {
   String? get error => _error;
   DateTime? get currentSessionStartTime => _currentSession?.startTime;
   DateTime? get currentSessionEndTime => _currentSession?.endTime;
+  List<Message> get messages => List.unmodifiable(_messages);
+  RoomConnectionState get connectionState => _connectionState;
+  bool get isLoadingMessages => _isLoadingMessages;
+  VoiceCallState get voiceCallState => _voiceCallState;
+
+
+  // Logique métier - Règles de validation
+  bool get canSendMessages => _connectionState == RoomConnectionState.connected &&
+                              (_currentSession?.isActive == true);
+
+  bool get canMakeVoiceCalls => _connectionState == RoomConnectionState.connected &&
+                                _currentSession?.isInProgress == true;
+  
+  bool get isInVoiceCall => _voiceCallState == VoiceCallState.connected;
+
+  String? get currentRoomId => _currentSession?.agoraChannelId;
+
+  // Helpers UI
+  String get voiceCallButtonText {
+    switch (_voiceCallState) {
+      case VoiceCallState.idle:
+        return 'Démarrer appel';
+      case VoiceCallState.calling:
+        return 'Connexion...';
+      case VoiceCallState.connected:
+        return 'Raccrocher';
+    }
+  }
+  
+  bool get voiceCallButtonEnabled {
+    return canMakeVoiceCalls && 
+           (_voiceCallState == VoiceCallState.idle || 
+            _voiceCallState == VoiceCallState.connected);
+  }
+
 
   /// Initialise les streams pour un utilisateur
   Future<void> initialize(String userId) async {
+    if(_isInitialized) return;
+    
       _currentUserId = userId;
 
     _clearError();
@@ -47,12 +96,58 @@ class SessionProvider extends ChangeNotifier {
       
       // Nettoyer les anciens streams
       await _cleanup();
-      
+
       // Écouter les changements temps réel
-      _listenToUserActiveSession();
-      
+      await _listenActiveSession();
+
+      // Récupération de la session ou création si première connexion
+      final currentSessionId = await _usersService.getCurrentSessionId();
+
+      if(currentSessionId == null) {
+        // Aucune session active
+        debugPrint('SessionProvider: Pas de session associé à cet utilisateur');
+        
+        //TODO: on crée une session vierge si pas de session associé ?
+
+      } else {
+        // Session active, chargement et configuration de la sesson
+        _currentSession = await _sessionsService.getSession(currentSessionId);
+
+        
+      _connectionState = RoomConnectionState.connecting;
+      notifyListeners();
+
+      // Initialise SDK
+      await _agoraService.initializeChatSDK();
+
+      // Authentifier l'utilisateur
+      await _agoraService.loginUser(_currentUserId!);
+
+      // Rejoindre la room
+      await _agoraService.joinChatGroup(_currentSession!.agoraChannelId);
+
+      // Charger l'historique
+      await _loadMessages();
+
+      // Initialiser les streams
+      _initializeStreams();
+
+      // Initialise RC si session en cours
+      if (_currentSession!.isInProgress) {
+        
+        await _agoraService.initializeRtcEngine();
+      }
+
+      _connectionState = RoomConnectionState.connected;
+      notifyListeners();
+
+      // Iniialisé seulement si une session est active
+      _isInitialized = true;
+      }     
     } catch (e) {
-      throw Exception('Erreur initialisation: $e');
+      _connectionState = RoomConnectionState.error;
+      notifyListeners();
+      throw Exception('SessionProvider: Erreur initialisation: $e');
     } finally {
       _setLoading(false);
     }
@@ -76,26 +171,32 @@ class SessionProvider extends ChangeNotifier {
     }
     
     _clearError();
+    Session? session;
 
     try {
       _setLoading(true);
-      // Générer un channel Agora unique
-      //TODO: à compléter
-      final agoraChannelId = 'session_${DateTime.now().millisecondsSinceEpoch}';
- 
-      // Créer la session
-      _currentSession = await _createSession(slot, agoraChannelId);
 
-      if(_currentSession != null) {
-      // Réserver le créneau
-        await _slotsService.bookSlot(slot.id!, _currentSession!.id);
+      // Configuraion d'une nouvelle session
+      final agoraChannelId = await _agoraNewSession(slot.createdBy);
 
-        // Mettre à jour currentSessionId dans user
-        await _usersService.updateCurrentSessionId(_currentSession!.id);
-      } else {
-        _setError('Echec de création de session');
+      if (agoraChannelId != null) {
+        // Créer la session - currentSession est mis à jour par le listener
+        session = await _createSession(slot, agoraChannelId);
       }
+
+      // Initialiser les streams
+      _initializeStreams();
+
+      // Réserver le créneau
+      await _slotsService.bookSlot(slot.id!, session!.id);
+
+      // Mettre à jour currentSessionId dans user
+      await _usersService.updateCurrentSessionId(session.id);
+
+      // Écouter les changements de la nouvelle session
+      _listenActiveSession();
     } catch (e) {
+      _rollbackBooking(session?.id, slot.id);
       _setError('Réservation échouée: $e');
       rethrow;
     }
@@ -114,14 +215,18 @@ class SessionProvider extends ChangeNotifier {
     _clearError();
     try {
       _setLoading(true);
+
+      // Nettoyage firebase
       await _slotsService.cancelBooking(_currentSession!.slotId);
       await _sessionsService.deleteSession(_currentSession!.id);
+      await _usersService.clearCurrentSessionId();
+
+      await _activeSessionStream?.cancel();
+
+      //TODO: netoyer room ? Agora ?
 
       // Nettoyer la session courante
       _currentSession = null;
-      
-      // Mettre à jour l'utilisateur
-      await _usersService.updateCurrentSessionId('');
     } catch (e) {
       _setError('Erreur suppression session: $e');
       rethrow;
@@ -132,94 +237,93 @@ class SessionProvider extends ChangeNotifier {
 
   /// Vérifie si l'utilisateur a une session active (scheduled ou active)
   bool hasActiveSession() {
-    return _currentSession != null && (_currentSession!.isScheduled || _currentSession!.isInProgress);
+    return _currentSession != null && (_currentSession!.isActive);
   }
 
-  /// Démarre une session (scheduled → inProgress)
-  Future<void> startSession() async {
-    if (_currentSession == null || !_currentSession!.isScheduled) {
-      _setError('Aucune session active à démarrer');
+  /// Logique métier : Gestion appel vocal
+  Future<bool> toggleVoiceCall() async {
+    if (!canMakeVoiceCalls || currentRoomId == null) {
+      _setError('Appel vocal non disponible actuellement');
+      return false;
     }
 
     try {
-      _setLoading(true);
-      _clearError();
-
-      await _sessionsService.updateSessionStatus(_currentSession!.id, SessionStatus.inProgress);
-
-      // Le stream mettra à jour automatiquement _currentSession
+      if (_voiceCallState == VoiceCallState.idle) {
+        await _startVoiceCall();
+      } else if (_voiceCallState == VoiceCallState.connected) {
+        await _endVoiceCall();
+      }
       
     } catch (e) {
-      _setError('Erreur démarrage session: $e');
-      rethrow;
-    } finally {
-      _setLoading(false);
+      _setError('Erreur appel vocal: $e');
+      return false;
     }
+    return true;
   }
 
-  /// Termine une session (inProgress → completed)
-  Future<void> completeSession() async {
-    if (_currentSession == null || !_currentSession!.isInProgress) {
-      _setError('Aucune session active à terminer');
+  /// Logique métier : Envoi de message avec validation
+  Future<bool> sendMessage(String text) async {
+    // Validations métier
+    if (!canSendMessages) {
+      _setError('Messages non autorisés dans l\'état actuel de la session');
+      return false;
     }
-
-    try {
-      _setLoading(true);
-      _clearError();
-
-      await _sessionsService.updateSessionStatus(_currentSession!.id, SessionStatus.completed);
-
-
-    _onSessionCompleted(_currentSession!);
-    _currentSession = null;
-
-      // Le stream mettra à jour automatiquement _currentSession
-
-    } catch (e) {
-      _setError('Erreur fin session: $e');
-      rethrow;
-    } finally {
-      _setLoading(false);
-    }
-  }
-  
-  /// Envoie un message dans la session active
-  Future<void> sendMessage({
-    required String text,
-    required String senderId,
-  }) async {
-    if (!hasActiveSession()) {
-      _setError('Aucune session active à envoyer un message');
-    }
-
-    try {
-      await _sessionsService.addMessage(
-        _currentSession!.id,
-        text: text,
-        senderId: senderId,
-      );
-    } catch (e) {
-      _setError('Erreur envoi message: $e');
-      rethrow;
-    }
-  }
-
-  /// Charge l'historique des sessions
-  Future<void> loadUserHistory() async {
-    if(_currentSession == null) {
-      _setError('Aucune session active pour charger l\'historique');
-    }
-
-    if (_historyLoaded) return;
     
+    if (_currentUserId == null || currentRoomId == null) {
+      _setError('Session non initialisée');
+      return false;
+    }
+    
+    final trimmedText = text.trim();
+    if (trimmedText.isEmpty) {
+      _setError('Message vide non autorisé');
+      return false;
+    }
+    
+    if (trimmedText.length > 1000) {
+      _setError('Message trop long (max 1000 caractères)');
+      return false;
+    }
+
+    // Créer le message
+    final optimisticMessage = Message(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      text: trimmedText,
+      senderId: _currentUserId!,
+      timestamp: DateTime.now(),
+      isFromCoach: false,
+    );
+
     try {
-      _userSessionHistory = await _sessionsService.getUserSessions();
+      debugPrint('SessionProvider: Sending message: $text');
+      
+
+      // Ajouter à la liste et notifier
+      _messages.add(optimisticMessage);
       notifyListeners();
+
+      // Appel technique pur
+      await _agoraService.sendTextMessage(
+        roomId: currentRoomId!,
+        content: trimmedText,
+      );
+      
+      debugPrint('SessionProvider: Message sent successfully');
+      return true;
+      
     } catch (e) {
-      _setError('Erreur chargement historique: $e');
+      // En cas d'erreur, retirer le message
+      _messages.removeWhere((msg) => msg.id == optimisticMessage.id);
+      notifyListeners();
+
+      _setError('Échec envoi message: $e');
+      return false;
     }
   }
 
+
+  /// ========== PRIVATE FUNCTION ==========
+  /// ========== GENERIQUE ==========
   /// Crée une nouvelle session
   Future<Session> _createSession(Slot slot, String agoraChannelId) async {
     if (_currentUserId == null) {
@@ -244,27 +348,283 @@ class SessionProvider extends ChangeNotifier {
   }
 
   /// Charge la session et écoute les changements de la session active
-  void _listenToUserActiveSession() {
-    _activeSessionSubscription = _sessionsService
-        .getUserActiveSessionStream()
-        .listen(
-      (session) {
-        _currentSession = session;
+  Future<void> _listenActiveSession() async {
+    try {
+      debugPrint('SessionProvider: Start sreaming session');
 
-        if (session?.needsStatusSync() == true) {
-          _autoCompleteExpiredSession(session!);
+      await _activeSessionStream?.cancel();
+
+      _activeSessionStream = _sessionsService
+          .getActiveSessionStream()
+          .listen(
+        (session) async {
+          if(!_isInitialized) return;
+          await _handleSessionChange(_currentSession, session);
+
+          _currentSession = session;
+
+          if (session?.needsStatusSync() == true) {
+            _autoCompleteExpiredSession(session!);
+          }
+
+          _startStatusTimer();
+
+          notifyListeners();
+        },
+        onError: (e) {
+          _setError('Erreur stream session active: $e');
+        },
+      );
+    } catch (e) {
+      _setError('Erreur chargement session: $e');
+    }
+  }
+  
+  Future<void> _handleSessionChange(Session? previous, Session? current) async {
+    // Session fermée/supprimée
+    if (previous != null && current == null) {
+      await _disconnectSession(previous);
+      return;
+    }
+    
+    // Nouvelle session ou changement de statut
+    if (current != null) {
+      final statusChanged = previous?.status != current.status;
+      
+      if (statusChanged) {
+        switch (current.status) {
+          case SessionStatus.scheduled:
+            // La config a été faite dans bookSlot
+            break;
+          case SessionStatus.inProgress:
+            await _agoraService.initializeRtcEngine();
+            break;
+          case SessionStatus.completed:
+            await _disconnectSession(current);
+            break;
         }
+      }
+    }
+  }
 
-        _startStatusTimer();
+  /// Nettoyage session précédente
+  Future<void> _disconnectSession(Session session) async {
+    try {
+      debugPrint('RoomProvider: Cleaning up session ${session.id}');
+      _isInitialized = false;
+      
+      // Arrêter les streams
+      await _rawMessageStream?.cancel();
+      await _voiceStateSream?.cancel();
+      
+      // Quitter les canaux
+      await _agoraService.leaveChatRoom(session.agoraChannelId);
+      await _agoraService.leaveVoiceChannel();
+      
+      // Réinitialiser l'état
+      _messages.clear();
+      _voiceCallState = VoiceCallState.idle;
+      _connectionState = RoomConnectionState.disconnected;
+      
+    } catch (e) {
+      debugPrint('RoomProvider: Error cleaning up session: $e');
+    }
+  }
 
-        notifyListeners();
-      },
-      onError: (e) {
-        _setError('Erreur stream session active: $e');
-      },
+  /// ========== PRIVATE: AGORA STREAMS ==========
+  Future<String?> _agoraNewSession(String coachId) async {
+    String? agoraChannelId;
+
+    try {
+      _connectionState = RoomConnectionState.connecting;
+      notifyListeners();
+
+      // Initialise SDK
+      await _agoraService.initializeChatSDK();
+
+      // Authentifier l'utilisateur
+      await _agoraService.loginUser(_currentUserId!);
+
+      agoraChannelId = await _agoraService.createChatGroup(coachId);
+
+      // Rejoindre la room
+      await _agoraService.joinChatGroup(agoraChannelId);
+
+      // Iniialisé seulement si une session est active 
+      _isInitialized = true;
+
+      _connectionState = RoomConnectionState.connected;
+      
+    } catch (e) {
+      _connectionState = RoomConnectionState.error;
+      _setError('Échec d\'activation session: $e');
+    }
+    
+    notifyListeners();
+    
+    return agoraChannelId;
+  }
+
+  /// Chargement historique des messages avec logique métier
+  Future<void> _loadMessages() async {
+    if (_currentSession?.agoraChannelId == null) {
+      debugPrint('SessionProvider: No room ID for loading messages');
+      return;
+    }
+
+    if (_isLoadingMessages) {
+      return; // Éviter les appels multiples
+    }
+
+    try {
+      _isLoadingMessages = true;
+      
+      debugPrint('SessionProvider: Loading message history');
+      
+      final chatMessages = await _agoraService.fetchMessageHistory(
+        conversationId: _currentSession!.agoraChannelId,
+        limit: 50,
+      );
+      
+      // Transformation métier
+      final messages = _convertChatMessagesToBusinessMessages(chatMessages);
+      
+      // Mise à jour état métier
+      _messages.clear();
+      _messages.addAll(messages);
+      _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      
+      debugPrint('SessionProvider: Loaded ${messages.length} messages');
+      
+    } catch (e) {
+      _setError('Erreur chargement historique: $e');
+    } finally {
+      _isLoadingMessages = false;
+    }
+  }
+
+  /// Initialise les streams techniques
+  void _initializeStreams() {
+    // Stream des messages bruts → Transformation métier
+    _rawMessageStream = _agoraService.rawMessageStream.listen(
+      _handleRawMessage,
+      onError: (error) => _setError('Erreur stream messages: $error'),
+    );
+    
+    // Stream états vocaux → Transformation métier
+    _voiceStateSream = _agoraService.voiceStateStream.listen(
+      _handleVoiceStateChange,
+      onError: (error) => _setError('Erreur stream vocal: $error'),
     );
   }
 
+  /// Traitement message brut → Logique métier
+  void _handleRawMessage(ChatMessage chatMessage) {
+    try {
+      final message = _convertChatMessageToBusinessMessage(chatMessage);
+      if (message != null && !_isDuplicateMessage(message)) {
+        _messages.add(message);
+        _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        
+        debugPrint('SessionProvider: New message received from ${message.senderId}');
+        notifyListeners();
+      }
+      
+    } catch (e) {
+      debugPrint('SessionProvider: Error processing message: $e');
+    }
+  }
+
+  /// Traitement changement état vocal
+  void _handleVoiceStateChange(VoiceConnectionState voiceState) {
+    final newCallState = _mapVoiceConnectionToCallState(voiceState);
+    
+    if (_voiceCallState != newCallState) {
+      debugPrint('SessionProvider: Voice state changed: $_voiceCallState → $newCallState');
+      _voiceCallState = newCallState;
+      notifyListeners();
+    }
+  }
+
+  /// Démarre un appel vocal
+  Future<void> _startVoiceCall() async {
+    debugPrint('SessionProvider: Starting voice call');
+    _voiceCallState = VoiceCallState.calling;
+    notifyListeners();
+    
+    // Dans RoomProvider, channelId  vallait currentRoomId, avec :
+    //String? get currentRoomId => _currentSession?.agoraChannelId;
+    await _agoraService.joinVoiceChannel(
+      channelId: 'TODO',
+    );
+  }
+
+  /// Termine un appel vocal
+  Future<void> _endVoiceCall() async {
+    debugPrint('SessionProvider: Ending voice call');
+    await _agoraService.leaveVoiceChannel();
+  }
+
+  /// Transformations métier : ChatMessage → Message business
+  Message? _convertChatMessageToBusinessMessage(ChatMessage chatMessage) {
+    try {
+      if (chatMessage.body is! ChatTextMessageBody) {
+        return null;
+      }
+      
+      final textBody = chatMessage.body as ChatTextMessageBody;
+      final senderId = chatMessage.from ?? '';
+      
+      return Message(
+        id: chatMessage.msgId,
+        text: textBody.content,
+        senderId: senderId,
+        timestamp: DateTime.fromMillisecondsSinceEpoch(chatMessage.serverTime),
+        isFromCoach: false,
+      );
+      
+    } catch (e) {
+      debugPrint('SessionProvider: Error converting message: $e');
+      return null;
+    }
+  }
+
+  /// Transformation multiple
+  List<Message> _convertChatMessagesToBusinessMessages(List<ChatMessage> chatMessages) {
+    return chatMessages
+        .map(_convertChatMessageToBusinessMessage)
+        .where((msg) => msg != null)
+        .cast<Message>()
+        .toList();
+  }
+
+  /// Anti-doublons
+  bool _isDuplicateMessage(Message message) {
+    return _messages.any((existingMsg) => existingMsg.id == message.id);
+  }
+
+  /// Mapping état technique → état métier
+  VoiceCallState _mapVoiceConnectionToCallState(VoiceConnectionState voiceState) {
+    switch (voiceState) {
+      case VoiceConnectionState.disconnected:
+        return VoiceCallState.idle;
+      case VoiceConnectionState.connecting:
+        return VoiceCallState.calling;
+      case VoiceConnectionState.connected:
+        return VoiceCallState.connected;
+    }
+  }
+
+
+
+
+
+  
+
+
+
+
+  /// ========== PRIVATE: GESTION DES ETAT SESSION ==========
   /// Auto-completion des sessions expirées
   Future<void> _autoCompleteExpiredSession(Session session) async {
     try {
@@ -303,16 +663,16 @@ class SessionProvider extends ChangeNotifier {
     }
     
     if (nextTransition != null && nextStatus != null) {
-    final timerDuration = nextTransition + Duration(seconds: 1);
-    
-    _statusTimer = Timer(timerDuration, () {
-      debugPrint('Transition automatique vers: $nextStatus');
+      final timerDuration = nextTransition + Duration(seconds: 1);
       
-      _autoUpdateSessionStatus(nextStatus!);
-      
-      _startStatusTimer(); // Planifie la prochaine
-    });
-  }
+      _statusTimer = Timer(timerDuration, () {
+        debugPrint('Transition automatique vers: $nextStatus');
+        
+        _autoUpdateSessionStatus(nextStatus!);
+        
+        _startStatusTimer(); // Planifie la prochaine
+      });
+    }
   }
 
   /// Met à jour le statut de la session automatiquement
@@ -339,6 +699,35 @@ class SessionProvider extends ChangeNotifier {
     }
   }
   
+
+  /// ========== PRIVATE: CLEAN ET ERROR ==========
+  /// Annule les modifications en cas d'erreur
+  Future<void> _rollbackBooking(
+    String? sessionId, 
+    String? slotId
+  ) async {
+    try {
+      // Supprimer la session créée
+      if (sessionId != null) {
+        await _sessionsService.deleteSession(sessionId);
+        debugPrint('Session supprimée: $sessionId');
+
+        // Supprimer le slot
+        if (slotId != null) {
+          await _slotsService.cancelBooking(slotId);
+          debugPrint('Slot supprimé: $slotId');
+        }
+
+        // Supprime la session active
+        await _usersService.clearCurrentSessionId();
+        debugPrint('User CurrentSessionId clear');
+      }
+    } catch (e) {
+      // Log mais ne pas lancer d'erreur pour éviter de masquer l'erreur originale
+      debugPrint('Erreur rollback: $e');
+    }
+  }
+
   /// Gestion état loading/error
   void _setLoading(bool loading) {
     _isLoading = loading;
@@ -346,7 +735,7 @@ class SessionProvider extends ChangeNotifier {
   }
   
   void _setError(String error) {
-    debugPrint(error);
+    debugPrint('SessionProvider Error: $error');
     _error = error;
     notifyListeners();
     throw Exception(error);
@@ -363,6 +752,9 @@ class SessionProvider extends ChangeNotifier {
     _currentSession = null;
     _userSessionHistory.clear();
     _historyLoaded = false;
+    _isLoadingMessages = false;
+        _isInitialized = false;
+    _connectionState = RoomConnectionState.disconnected;
     _clearError();
     _setLoading(false);
     notifyListeners();
@@ -371,10 +763,12 @@ class SessionProvider extends ChangeNotifier {
   /// Nettoie les streams
   Future<void> _cleanup() async {
     _statusTimer?.cancel();
-    await _activeSessionSubscription?.cancel();
-    await _historySubscription?.cancel();
-    _activeSessionSubscription = null;
-    _historySubscription = null;
+    await _activeSessionStream?.cancel();
+    await _historyStream?.cancel();
+    await _rawMessageStream?.cancel();
+    await _voiceStateSream?.cancel();
+    _activeSessionStream = null;
+    _historyStream = null;
     _statusTimer = null;
   }
 
@@ -390,4 +784,12 @@ class SessionProvider extends ChangeNotifier {
   String toString() {
     return 'SessionProvider(activeSession: $_currentSession, historyCount: ${_userSessionHistory.length})';
   }
+}
+
+/// États de connexion de la room (métier)
+enum RoomConnectionState {
+  disconnected,
+  connecting, 
+  connected,
+  error,
 }

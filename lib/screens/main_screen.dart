@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:caunvo/screens/home_screen.dart';
 import 'package:caunvo/screens/calendar_screen.dart';
-import 'package:caunvo/screens/salon_screen.dart';
+import 'package:caunvo/screens/room_screen.dart';
 import 'package:caunvo/core/constants/app_colors.dart';
 import 'package:caunvo/providers/navigation_provider.dart';
 import 'package:caunvo/providers/auth_provider.dart';
 import 'package:caunvo/providers/session_provider.dart';
 import 'package:caunvo/providers/calendar_provider.dart';
+import 'package:caunvo/providers/room_provider.dart';
 import 'package:provider/provider.dart';
 
 class MainScreen extends StatefulWidget {
@@ -22,7 +23,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
     const HomeScreen(),
     const CalendarScreen(), 
-    const SalonScreen(),
+    const RoomScreen(),
   ];
 
   @override
@@ -38,7 +39,7 @@ class _MainScreenState extends State<MainScreen> {
     
     try {
       final authProvider = context.read<AuthProvider>();
-      final userId = authProvider.user?.id;
+      final userId = authProvider.currentUserId;
       
       if (userId != null) {
         final sessionProvider = context.read<SessionProvider>();

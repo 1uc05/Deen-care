@@ -107,6 +107,44 @@ class DatabaseTools {
     }
   }
 
+  /// Supprime tous les champs currentSessionId de la collection users
+  static Future<void> clearAllCurrentSessions() async {
+    try {
+      final usersCollection = _firestore.collection('users');
+      final snapshot = await usersCollection.get();
+      
+      if (snapshot.docs.isEmpty) {
+        debugPrint('⚠️ Aucun utilisateur trouvé');
+        return;
+      }
+
+      final batch = _firestore.batch();
+      int updatedCount = 0;
+      
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        
+        // Vérifier si le champ currentSessionId existe
+        if (data.containsKey('currentSessionId')) {
+          batch.update(doc.reference, {'currentSessionId': FieldValue.delete()});
+          updatedCount++;
+        }
+      }
+      
+      if (updatedCount == 0) {
+        debugPrint('⚠️ Aucune session active à nettoyer');
+        return;
+      }
+      
+      await batch.commit();
+      debugPrint('✅ Sessions actives nettoyées ($updatedCount utilisateurs mis à jour)');
+      
+    } catch (e) {
+      debugPrint('❌ Erreur lors du nettoyage des sessions: $e');
+      rethrow;
+    }
+
+  }
   /// Fonction helper pour nettoyer et recréer les données de test
   static Future<void> resetTestData() async {
     debugPrint('🧹 Nettoyage des données...');
@@ -114,9 +152,10 @@ class DatabaseTools {
     await clearCollection('sessions');
     await clearCollection('slots');
     // Note: on évite de vider 'users' pour conserver les comptes de test
+    await clearAllCurrentSessions();
     
-    debugPrint('📝 Création des données de test...');
-    await createTestSlots();
+    // debugPrint('📝 Création des données de test...');
+    // await createTestSlots();
     
     debugPrint('✨ Reset terminé !');
   }

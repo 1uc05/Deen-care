@@ -6,7 +6,7 @@ class ReservationCard extends StatelessWidget {
   final DateTime startTime;
   final DateTime endTime;
   final VoidCallback onCancel;
-  final VoidCallback onGoToSalon;
+  final VoidCallback onGoToRoom;
   final bool isLoading;
 
   const ReservationCard({
@@ -14,7 +14,7 @@ class ReservationCard extends StatelessWidget {
     required this.startTime,
     required this.endTime,
     required this.onCancel,
-    required this.onGoToSalon,
+    required this.onGoToRoom,
     this.isLoading = false,
   });
 
@@ -170,7 +170,7 @@ class ReservationCard extends StatelessWidget {
               // Bouton Aller au salon
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: isLoading ? null : onGoToSalon,
+                  onPressed: isLoading ? null : onGoToRoom,
                   icon: const Icon(Icons.chat, size: 18),
                   label: const Text('Aller au salon'),
                   style: ElevatedButton.styleFrom(

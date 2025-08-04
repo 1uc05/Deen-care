@@ -8,6 +8,7 @@ import 'providers/calendar_provider.dart';
 import 'providers/session_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; 
 import 'package:intl/date_symbol_data_local.dart';
+import 'core/utils/data_tools.dart';
 
 void main() async {
   debugPrint('START APPLICATION');
@@ -22,7 +23,6 @@ void main() async {
   // Initialise les données de localisation avec gestion d'erreur
   try {
     await initializeDateFormatting('fr_FR');
-    debugPrint('Localisation FR initialisée avec succès');
   } catch (e) {
     debugPrint('Erreur localisation FR, utilisation locale par défaut: $e');
     await initializeDateFormatting(); // Locale système par défaut

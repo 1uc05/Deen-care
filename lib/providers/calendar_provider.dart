@@ -66,7 +66,7 @@ class CalendarProvider with ChangeNotifier {
     try {
       _currentUserId = userId;
     } catch (e) {
-      _setError('Erreur initialisation: $e');
+      _setError('CalendarProvider: Erreur initialisation: $e');
     }
   }
 

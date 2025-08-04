@@ -9,7 +9,8 @@ lib/
 │   ├── services/
 │   │   ├── firebase/
 │   │   │   ├── users_service.dart     # Classe fille firebase, CRUD utilisateurs
-│   │   │   └── calendar_service.dart  # Classe fille firebase, Get réservatons  / set reservaton
+│   │   │   ├── sessions_service.dart  # Classe fille firebase, CRUD sessions
+│   │   │   └── slots_service.dart     # Classe fille firebase, Get / set reservaton
 │   │   └── firebase_service.dart      # Classe mère firebase, instance Firebase partagées
 │   │   └── agora_service.dart         # Chat + Voice
 │   └── utils/
@@ -27,15 +28,20 @@ lib/
 │   ├── home_screen.dart
 │   ├── calendar_screen.dart          # Calendrier mois sur tout l'écran
 │   ├── slots_screen.dart             # Liste des créneaux disponibles d'un jour
-│   └── salon_screen.dart             # Chat de discussion
+│   └── room_screen.dart             # Chat de discussion
 │
 ├── providers/                        # Gestion d'état (Provider)
-│   ├── auth_provider.dart
+│   ├── navigation_provider.dart      # Gestion onglets de navigation (goToHome() / goToCalendar() / goToRoom())
+│   ├── auth_provider.dart            # Authentification Firebase avec états (initial/loading/authenticated/unauthenticated/error)
 │   ├── calendar_provider.dart        # Mise à jour temps réel des réservations
-│   ├── session_provider.dart
-│   └── chat_provider.dart
+│   ├── session_provider.dart         # Gestion session active utilisateur
+│   └── room_provider.dart            # Gestion messages et appel
 │
 └── widgets/                          # Widgets partagés
-    └── calendar/
-        ├── month_calendar.dart
-        └── booking_popup.dart
+│   ├── calendar/
+    │   ├── month_calendar.dart
+    │   └── booking_popup.dart
+    └── room/
+        ├── message_bubble.dart
+        ├── voice_call_button.dart
+        └── message_input.dart

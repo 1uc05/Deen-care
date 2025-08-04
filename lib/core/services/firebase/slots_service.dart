@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../firebase_service.dart';
 import '../../../models/slot.dart';
 
@@ -113,7 +114,7 @@ class SlotsService extends FirebaseService {
   Future<bool> cancelBooking(String slotId) async {
     validateCurrentUser();
     
-    final userId = currentUser!.uid;
+    final userId = currentUserId;
 
     try {
       return await firestore.runTransaction<bool>((transaction) async {
@@ -138,11 +139,11 @@ class SlotsService extends FirebaseService {
           'reservedAt': null,
         });
 
-        // Nettoyer currentSessionId dans user
-        final userRef = firestore.collection('users').doc(userId);
-        transaction.update(userRef, {
-          'currentSessionId': null,
-        });
+        // // Nettoyer currentSessionId dans user
+        // final userRef = firestore.collection('users').doc(userId);
+        // transaction.update(userRef, {
+        //   'currentSessionId': null,
+        // });
 
         return true;
       });

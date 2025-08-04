@@ -53,6 +53,7 @@ class Session {
   bool get isScheduled => effectiveStatus == SessionStatus.scheduled;
   bool get isInProgress => effectiveStatus == SessionStatus.inProgress;
   bool get isCompleted => effectiveStatus == SessionStatus.completed;
+  bool get isActive => status == SessionStatus.scheduled || status == SessionStatus.inProgress;
 
   // Helpers temporels
   Duration get duration => endTime.difference(startTime);

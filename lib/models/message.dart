@@ -5,12 +5,14 @@ class Message {
   final String text;
   final String senderId;
   final DateTime timestamp;
+  final bool isFromCoach;
 
   const Message({
     required this.id,
     required this.text,
     required this.senderId,
     required this.timestamp,
+    required this.isFromCoach,
   });
 
   /// Factory depuis Firestore DocumentSnapshot
@@ -23,10 +25,11 @@ class Message {
       timestamp: data['timestamp'] != null
           ? (data['timestamp'] as Timestamp).toDate()
           : DateTime.now(),
+      isFromCoach: data['isFromCoach'] as bool? ?? false,
     );
   }
 
-  /// Factory depuis Map (pour compatibilité)
+  /// Factory depuis Map (pour compatibilité Agora)
   factory Message.fromMap(Map<String, dynamic> map, String id) {
     return Message(
       id: id,
@@ -35,15 +38,39 @@ class Message {
       timestamp: map['timestamp'] != null
           ? (map['timestamp'] as Timestamp).toDate()
           : DateTime.now(),
+      isFromCoach: map['isFromCoach'] as bool? ?? false,
     );
   }
 
-  /// Conversion vers Map pour Firestore (sans l'id)
+  /// Factory depuis données Agora (conversion Message Agora → Message local)
+  factory Message.fromAgora(Map<String, dynamic> agoraData, String currentUserId, String coachId) {
+    return Message(
+      id: agoraData['messageId'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      text: agoraData['text'] ?? '',
+      senderId: agoraData['from'] ?? '',
+      timestamp: agoraData['timestamp'] != null 
+          ? DateTime.fromMillisecondsSinceEpoch(agoraData['timestamp'])
+          : DateTime.now(),
+      isFromCoach: (agoraData['from'] ?? '') == coachId,
+    );
+  }
+
+  /// Conversion vers Map pour Firestore (avec isFromCoach)
   Map<String, dynamic> toMap() {
     return {
       'text': text,
       'senderId': senderId,
       'timestamp': Timestamp.fromDate(timestamp),
+      'isFromCoach': isFromCoach,
+    };
+  }
+
+  /// Conversion vers Map pour Agora
+  Map<String, dynamic> toAgoraMap() {
+    return {
+      'text': text,
+      'timestamp': timestamp.millisecondsSinceEpoch,
+      'isFromCoach': isFromCoach,
     };
   }
 
@@ -76,18 +103,20 @@ class Message {
     String? text,
     String? senderId,
     DateTime? timestamp,
+    bool? isFromCoach,
   }) {
     return Message(
       id: id ?? this.id,
       text: text ?? this.text,
       senderId: senderId ?? this.senderId,
       timestamp: timestamp ?? this.timestamp,
+      isFromCoach: isFromCoach ?? this.isFromCoach,
     );
   }
 
   @override
   String toString() {
-    return 'Message(id: $id, senderId: $senderId, text: "${text.length > 50 ? "${text.substring(0, 50)}..." : text}")';
+    return 'Message(id: $id, senderId: $senderId, isFromCoach: $isFromCoach, text: "${text.length > 50 ? "${text.substring(0, 50)}..." : text}")';
   }
 
   @override

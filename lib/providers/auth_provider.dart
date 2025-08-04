@@ -11,7 +11,6 @@ class AuthProvider extends ChangeNotifier {
   AuthState _state = AuthState.initial;
   User? _user;
   String? _error;
-  // String? _currentSessionId;
 
 
   // Getters
@@ -20,6 +19,7 @@ class AuthProvider extends ChangeNotifier {
   String? get error => _error;
   bool get isLoading => _state == AuthState.loading;
   bool get isAuthenticated => _state == AuthState.authenticated && _user != null;
+  String? get currentUserId => _user?.id;
 
   AuthProvider() {
     _initAuthListener();
