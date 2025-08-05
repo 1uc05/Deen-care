@@ -7,6 +7,7 @@ import '../models/slot.dart';
 import '../core/services/firebase/sessions_service.dart';
 import '../core/services/firebase/slots_service.dart';
 import '../core/services/firebase/users_service.dart';
+import '../core/services/firebase/cloud_functions_service.dart';
 import '../core/services/agora_service.dart';
 import '../models/voice_call_state.dart';
 import '../models/message.dart';
@@ -16,6 +17,7 @@ class SessionProvider extends ChangeNotifier {
   final SlotsService _slotsService = SlotsService();
   final UsersService _usersService = UsersService();
   final AgoraService _agoraService = AgoraService();
+  final CloudFunctionsService _cloudFunctionsService = CloudFunctionsService();
 
   // État interne
   String? _currentUserId;
@@ -83,7 +85,7 @@ class SessionProvider extends ChangeNotifier {
   }
 
 
-  /// Initialise les streams pour un utilisateur
+  /// Initialise le provider
   Future<void> initialize(String userId) async {
     if(_isInitialized) return;
     
@@ -93,56 +95,64 @@ class SessionProvider extends ChangeNotifier {
 
     try {
       _setLoading(true);
+
+      _connectionState = RoomConnectionState.connecting;
+      notifyListeners();
       
       // Nettoyer les anciens streams
       await _cleanup();
-
-      // Écouter les changements temps réel
-      await _listenActiveSession();
 
       // Récupération de la session ou création si première connexion
       final currentSessionId = await _usersService.getCurrentSessionId();
 
       if(currentSessionId == null) {
-        // Aucune session active
-        debugPrint('SessionProvider: Pas de session associé à cet utilisateur');
+        debugPrint('SessionProvider: Première connexion de l\'utilisateur');
         
-        //TODO: on crée une session vierge si pas de session associé ?
-
+        // Générer dès la première connexion d'un utilisateur
+        await _cloudFunctionsService.createAgoraUser();
+        _currentSession = await _createFirstSession();
       } else {
         // Session active, chargement et configuration de la sesson
         _currentSession = await _sessionsService.getSession(currentSessionId);
+        if(_currentSession == null) {
+          throw Exception('SessionProvider: Session active introuvable');
+        }
 
-        
-      _connectionState = RoomConnectionState.connecting;
-      notifyListeners();
+        // Initialiser Agora si la session est active
+        if (_currentSession!.isActive) {
 
-      // Initialise SDK
-      await _agoraService.initializeChatSDK();
+          // Initialise SDK
+          await _agoraService.initializeChatSDK();
 
-      // Authentifier l'utilisateur
-      await _agoraService.loginUser(_currentUserId!);
+          // Authentifier l'utilisateur
+          final token = await _cloudFunctionsService.generateChatToken();
+          await _agoraService.loginUser(_currentUserId!, token);
 
-      // Rejoindre la room
-      await _agoraService.joinChatGroup(_currentSession!.agoraChannelId);
+          // Rejoindre la room
+          await _agoraService.joinChatGroup(_currentSession!.agoraChannelId!);
 
-      // Charger l'historique
-      await _loadMessages();
+          // Charger l'historique
+          await _loadMessages();
 
-      // Initialiser les streams
-      _initializeStreams();
+          // Initialiser les streams
+          _initializeStreams();
 
-      // Initialise RC si session en cours
-      if (_currentSession!.isInProgress) {
-        
-        await _agoraService.initializeRtcEngine();
-      }
+          // Initialise RTC si session en cours
+          if (_currentSession!.isInProgress) {
+            await _agoraService.initializeRtcEngine();
+          }
 
-      _connectionState = RoomConnectionState.connected;
-      notifyListeners();
+          // Met à jour le statut de la session s'il a changé pendant déconnection
+          if(_currentSession!.effectiveStatus != _currentSession!.status) {
+            await _autoUpdateSessionStatus(_currentSession!.effectiveStatus);
+          }
+        }
 
-      // Iniialisé seulement si une session est active
-      _isInitialized = true;
+        _connectionState = RoomConnectionState.connected;
+        notifyListeners();
+
+        // Initialisé seulement si une session est active
+        _isInitialized = true;
       }     
     } catch (e) {
       _connectionState = RoomConnectionState.error;
@@ -176,22 +186,22 @@ class SessionProvider extends ChangeNotifier {
     try {
       _setLoading(true);
 
-      // Configuraion d'une nouvelle session
+      // Configuration d'une nouvelle session
       final agoraChannelId = await _agoraNewSession(slot.createdBy);
 
-      if (agoraChannelId != null) {
-        // Créer la session - currentSession est mis à jour par le listener
-        session = await _createSession(slot, agoraChannelId);
+      if (agoraChannelId == null) {
+        _setError('Échec de création de session Agora');
+        return;
       }
+
+      // Créer la session - currentSession est mis à jour par le listener
+      session = await _createSession(slot, agoraChannelId);
 
       // Initialiser les streams
       _initializeStreams();
 
       // Réserver le créneau
       await _slotsService.bookSlot(slot.id!, session!.id);
-
-      // Mettre à jour currentSessionId dans user
-      await _usersService.updateCurrentSessionId(session.id);
 
       // Écouter les changements de la nouvelle session
       _listenActiveSession();
@@ -217,13 +227,21 @@ class SessionProvider extends ChangeNotifier {
       _setLoading(true);
 
       // Nettoyage firebase
-      await _slotsService.cancelBooking(_currentSession!.slotId);
+      await _slotsService.cancelBooking(_currentSession!.slotId!);
       await _sessionsService.deleteSession(_currentSession!.id);
-      await _usersService.clearCurrentSessionId();
+      final currentSessionId = await _usersService.clearCurrentSessionId();
+
+      if (currentSessionId == null) {
+        _currentSession = await _createFirstSession();
+        
+      } else {
+        // Récupérer dernière session complétée
+        _currentSession = await _sessionsService.getSession(currentSessionId);
+      }
 
       await _activeSessionStream?.cancel();
 
-      //TODO: netoyer room ? Agora ?
+      // La déconnexion d'Agora est gérée par le listener
 
       // Nettoyer la session courante
       _currentSession = null;
@@ -343,6 +361,27 @@ class SessionProvider extends ChangeNotifier {
     );
 
     final sessionId = await _sessionsService.createSession(session);
+    await _usersService.updateCurrentSessionId(sessionId);
+
+    return session.copyWith(id: sessionId);
+  }
+
+  // Créer la première session si l'utilisateur n'en a pas
+  Future<Session> _createFirstSession() async {
+    final session = Session(
+      id: '',
+      userId: _currentUserId!,
+      coachId: null,
+      slotId: null,
+      status: SessionStatus.undefined,
+      startedAt: null,
+      agoraChannelId: null,
+      startTime: null,
+      endTime: null,
+    );
+
+    final sessionId = await _sessionsService.createSession(session);
+    await _usersService.updateCurrentSessionId(sessionId);
 
     return session.copyWith(id: sessionId);
   }
@@ -363,9 +402,11 @@ class SessionProvider extends ChangeNotifier {
 
           _currentSession = session;
 
-          if (session?.needsStatusSync() == true) {
-            _autoCompleteExpiredSession(session!);
-          }
+          // debugPrint('SessionProvider: TEST listener: ${_currentSession?.status}');
+          // if (session?.needsStatusSync() == true) {
+          //   debugPrint('SessionProvider: TEST listener2');
+          //   _autoCompleteExpiredSession(session!);
+          // }
 
           _startStatusTimer();
 
@@ -410,7 +451,8 @@ class SessionProvider extends ChangeNotifier {
   /// Nettoyage session précédente
   Future<void> _disconnectSession(Session session) async {
     try {
-      debugPrint('RoomProvider: Cleaning up session ${session.id}');
+      debugPrint('SessionProvider: Cleaning up session ${session.id}');
+      debugPrint('SessionProvider: Cleaning up session ${session.agoraChannelId}');
       _isInitialized = false;
       
       // Arrêter les streams
@@ -418,8 +460,11 @@ class SessionProvider extends ChangeNotifier {
       await _voiceStateSream?.cancel();
       
       // Quitter les canaux
-      await _agoraService.leaveChatRoom(session.agoraChannelId);
+      await _agoraService.leaveChatRoom(session.agoraChannelId!);
       await _agoraService.leaveVoiceChannel();
+      
+      // Déconnecte l'utilisateur
+      await _agoraService.logoutUser();
       
       // Réinitialiser l'état
       _messages.clear();
@@ -427,11 +472,12 @@ class SessionProvider extends ChangeNotifier {
       _connectionState = RoomConnectionState.disconnected;
       
     } catch (e) {
-      debugPrint('RoomProvider: Error cleaning up session: $e');
+      debugPrint('SessionProvider: Error cleaning up session: $e');
     }
   }
 
   /// ========== PRIVATE: AGORA STREAMS ==========
+  // Crée une nouvelle session Agora
   Future<String?> _agoraNewSession(String coachId) async {
     String? agoraChannelId;
 
@@ -443,7 +489,8 @@ class SessionProvider extends ChangeNotifier {
       await _agoraService.initializeChatSDK();
 
       // Authentifier l'utilisateur
-      await _agoraService.loginUser(_currentUserId!);
+      final token = await _cloudFunctionsService.generateChatToken();
+      await _agoraService.loginUser(_currentUserId!, token);
 
       agoraChannelId = await _agoraService.createChatGroup(coachId);
 
@@ -482,7 +529,7 @@ class SessionProvider extends ChangeNotifier {
       debugPrint('SessionProvider: Loading message history');
       
       final chatMessages = await _agoraService.fetchMessageHistory(
-        conversationId: _currentSession!.agoraChannelId,
+        conversationId: _currentSession!.agoraChannelId!,
         limit: 50,
       );
       
@@ -645,6 +692,7 @@ class SessionProvider extends ChangeNotifier {
 
   /// Timer pour refresh l'UI aux transitions
   void _startStatusTimer() {
+    debugPrint('SessionProvider: TEST statusTimer: ${_currentSession?.status}');
     _statusTimer?.cancel();
     
     if (_currentSession == null) return;
@@ -653,12 +701,12 @@ class SessionProvider extends ChangeNotifier {
     Duration? nextTransition;
     String? nextStatus;
     
-    // Calculer la prochaine transition ET le nouveau status
-    if (now.isBefore(_currentSession!.startTime)) {
-      nextTransition = _currentSession!.startTime.difference(now);
+    // Calculer la prochaine transition et le nouveau status
+    if (now.isBefore(_currentSession!.startTime!)) {
+      nextTransition = _currentSession!.startTime!.difference(now);
       nextStatus = SessionStatus.inProgress;
-    } else if (now.isBefore(_currentSession!.endTime)) {
-      nextTransition = _currentSession!.endTime.difference(now);
+    } else if (now.isBefore(_currentSession!.endTime!)) {
+      nextTransition = _currentSession!.endTime!.difference(now);
       nextStatus = SessionStatus.completed;
     }
     
@@ -666,7 +714,7 @@ class SessionProvider extends ChangeNotifier {
       final timerDuration = nextTransition + Duration(seconds: 1);
       
       _statusTimer = Timer(timerDuration, () {
-        debugPrint('Transition automatique vers: $nextStatus');
+        debugPrint('SessionProvider: Transition automatique vers: $nextStatus');
         
         _autoUpdateSessionStatus(nextStatus!);
         
@@ -753,7 +801,7 @@ class SessionProvider extends ChangeNotifier {
     _userSessionHistory.clear();
     _historyLoaded = false;
     _isLoadingMessages = false;
-        _isInitialized = false;
+    _isInitialized = false;
     _connectionState = RoomConnectionState.disconnected;
     _clearError();
     _setLoading(false);

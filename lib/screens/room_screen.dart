@@ -101,7 +101,7 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
         builder: (context, sessionProvider, child) {
           final session = sessionProvider.currentSession;
           
-          if (session == null) {
+          if (session == null || session.status == SessionStatus.undefined) {
             return const Text('Salon');
           }
 
@@ -132,7 +132,9 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
         Consumer<SessionProvider>(
           builder: (context, sessionProvider, child) {
             final session = sessionProvider.currentSession;
-            if (session == null) return const SizedBox.shrink();
+            if (session == null || session.status == SessionStatus.undefined) {
+              return const SizedBox.shrink();
+            }
 
             return Container(
               margin: const EdgeInsets.only(right: 16),
@@ -261,7 +263,6 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
       itemBuilder: (context, index) {
         final message = sessionProvider.messages[index];
         final currentUserId = context.read<AuthProvider>().currentUserId;
-        debugPrint('message.senderId: ${message.senderId} - currentUserId: $currentUserId');
         return MessageBubble(
           message: message,
           isFromCurrentUser: message.senderId.toLowerCase() == currentUserId?.toLowerCase(),
@@ -368,10 +369,13 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
 
   /// Formate l'heure de la session pour l'AppBar
   String _formatSessionTime(Session session) {
+    if(session.status == SessionStatus.undefined) {
+      return 'Heure inconnue';
+    }
     final startTime = session.startTime;
     final endTime = session.endTime;
-    
-    return '${_formatTime(startTime)} - ${_formatTime(endTime)}';
+
+    return '${_formatTime(startTime!)} - ${_formatTime(endTime!)}';
   }
 
   /// Formate une heure au format HH:mm
@@ -396,6 +400,8 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
   /// Obtient le texte du statut de la session
   String _getStatusText(String status) {
     switch (status) {
+      case 'undefined':
+        return 'Aucune session';
       case 'scheduled':
         return 'Programmée';
       case 'inProgress':

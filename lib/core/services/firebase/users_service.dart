@@ -162,12 +162,15 @@ class UsersService extends FirebaseService {
   }
 
   /// Supprime la session en cours de l'utilisateur
-  Future<void> clearCurrentSessionId() async {
+  Future<String?> clearCurrentSessionId() async {
     try {
       validateCurrentUser();
       await firestore.collection(_collection).doc(currentUserId).update({
         'currentSessionId': null,
       });
+
+      // Retourne l'ancien ID de session
+      return await getCurrentSessionId();
     } catch (e) {
       throw handleFirestoreException(e, 'suppression ID de session');
     }

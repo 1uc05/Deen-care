@@ -101,6 +101,7 @@ class SessionsService extends FirebaseService {
           .update({
         'status': newStatus,
       });
+      debugPrint('SessionService: Session $sessionId mise à jour avec le statut: $newStatus');
     } catch (e) {
       throw handleFirestoreException(e, 'mise à jour statut session');
     }

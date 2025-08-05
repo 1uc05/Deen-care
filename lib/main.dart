@@ -8,7 +8,9 @@ import 'providers/calendar_provider.dart';
 import 'providers/session_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; 
 import 'package:intl/date_symbol_data_local.dart';
+import 'firebase_options.dart';
 import 'core/utils/data_tools.dart';
+
 
 void main() async {
   debugPrint('START APPLICATION');
@@ -18,7 +20,9 @@ void main() async {
   await dotenv.load(fileName: ".env");
   
   // Initialisation Firebase
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   
   // Initialise les données de localisation avec gestion d'erreur
   try {

@@ -106,7 +106,7 @@ class AgoraService {
   }
 
   /// Connexion utilisateur au Chat
-  Future<void> loginUser(String userId, {String? token}) async {
+  Future<void> loginUser(String userId, String token) async {
     if (!_isChatInitialized) {
       throw Exception('Chat SDK not initialized');
     }
@@ -114,14 +114,9 @@ class AgoraService {
     await logoutUser();
     
     final agoraUserId = userId.toLowerCase();
-    final tokenToUse = token ?? AppConstants.agoraDevToken;
-    
-    debugPrint('Agora login - UserID: $agoraUserId');
-    debugPrint('Token: $tokenToUse');
-    
+        
     try {
-      
-      await _chatClient!.loginWithToken(agoraUserId, tokenToUse);
+      await _chatClient!.loginWithToken(agoraUserId, token);
       debugPrint('AgoraService: User logged in: $agoraUserId');
       
     } on ChatError catch (e) {

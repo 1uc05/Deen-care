@@ -7,7 +7,6 @@ import 'package:caunvo/providers/navigation_provider.dart';
 import 'package:caunvo/providers/auth_provider.dart';
 import 'package:caunvo/providers/session_provider.dart';
 import 'package:caunvo/providers/calendar_provider.dart';
-import 'package:caunvo/providers/room_provider.dart';
 import 'package:provider/provider.dart';
 
 class MainScreen extends StatefulWidget {

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Constantes pour les statuts
 class SessionStatus {
+  static const String undefined = 'undefined';
   static const String scheduled = 'scheduled';
   static const String inProgress = 'inProgress';
   static const String completed = 'completed';
@@ -10,28 +11,31 @@ class SessionStatus {
 class Session {
   final String id;
   final String userId;
-  final String coachId;
-  final String slotId;
+  final String? coachId;
+  final String? slotId;
   final String status; // Status officiel en DB
   final Timestamp? startedAt;
-  final String agoraChannelId;
-  final DateTime startTime;
-  final DateTime endTime;
+  final String? agoraChannelId;
+  final DateTime? startTime;
+  final DateTime? endTime;
 
   const Session({
     required this.id,
     required this.userId,
-    required this.coachId,
-    required this.slotId,
+    this.coachId,
+    this.slotId,
     required this.status,
     this.startedAt,
-    required this.agoraChannelId,
-    required this.startTime,
-    required this.endTime,
+    this.agoraChannelId,
+    this.startTime,
+    this.endTime,
   });
 
   // Status calculé basé sur l'heure + status DB
   String get effectiveStatus {
+    if  (status == SessionStatus.undefined) {
+      return SessionStatus.undefined;
+    }
     final now = DateTime.now();
     
     // Si la session est terminée en DB, elle reste terminée
@@ -40,9 +44,9 @@ class Session {
     }
     
     // Calcul basé sur l'heure actuelle
-    if (now.isBefore(startTime)) {
+    if (now.isBefore(startTime!)) {
       return SessionStatus.scheduled;
-    } else if (now.isAfter(endTime)) {
+    } else if (now.isAfter(endTime!)) {
       return SessionStatus.completed; // Auto-expire
     } else {
       return SessionStatus.inProgress; // Entre start et end
@@ -56,7 +60,7 @@ class Session {
   bool get isActive => status == SessionStatus.scheduled || status == SessionStatus.inProgress;
 
   // Helpers temporels
-  Duration get duration => endTime.difference(startTime);
+  // Duration get duration => endTime.difference(startTime);
   bool get isNow => isInProgress;
   bool get isPast => isCompleted;
   bool get isFuture => isScheduled;
@@ -77,8 +81,8 @@ class Session {
       status: data['status'] ?? 'scheduled',
       startedAt: data['startedAt'],
       agoraChannelId: data['agoraChannelId'] ?? '',
-      startTime: (data['startTime'] as Timestamp).toDate(),
-      endTime: (data['endTime'] as Timestamp).toDate(),
+      startTime: (data['startTime'] as Timestamp?)?.toDate(),
+      endTime: (data['endTime'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -90,8 +94,8 @@ class Session {
       'slotId': slotId,
       'status': status,
       'agoraChannelId': agoraChannelId,
-      'startTime': Timestamp.fromDate(startTime),
-      'endTime': Timestamp.fromDate(endTime),
+      'startTime': startTime != null ? Timestamp.fromDate(startTime!) : null,
+      'endTime': endTime != null ? Timestamp.fromDate(endTime!) : null,
     };
     
     if (startedAt != null) {
