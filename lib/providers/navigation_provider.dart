@@ -6,8 +6,9 @@ class NavigationProvider extends ChangeNotifier {
   int get currentIndex => _currentIndex;
 
   void goToHome() => setIndex(0);
-  void goToCalendar() => setIndex(1);
-  void goToRoom() => setIndex(2);
+  void goToTextes() => setIndex(1);
+  void goToCalendar() => setIndex(2);
+  void goToRoom() => setIndex(3);
   void setIndex(int index) => _setIndex(index);
 
   void _setIndex(int index) {

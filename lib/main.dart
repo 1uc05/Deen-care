@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'app.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/texts_provider.dart';
 import 'providers/calendar_provider.dart';
 import 'providers/session_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; 
@@ -43,6 +44,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => TextsProvider()),
         ChangeNotifierProvider(create: (_) => CalendarProvider()),
         ChangeNotifierProvider(create: (_) => SessionProvider()),
       ],

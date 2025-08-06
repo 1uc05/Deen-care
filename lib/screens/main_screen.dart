@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:caunvo/screens/home_screen.dart';
+import 'package:caunvo/screens/texts_list_screen.dart';
 import 'package:caunvo/screens/calendar_screen.dart';
 import 'package:caunvo/screens/room_screen.dart';
 import 'package:caunvo/core/constants/app_colors.dart';
@@ -21,6 +22,7 @@ class _MainScreenState extends State<MainScreen> {
   
   final List<Widget> _pages = [
     const HomeScreen(),
+    const TextsListScreen(),
     const CalendarScreen(), 
     const RoomScreen(),
   ];
@@ -90,6 +92,7 @@ class _MainScreenState extends State<MainScreen> {
             unselectedItemColor: AppColors.textGrey,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+              BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Mémorisation'), //menu_book, school, auto_stories
               BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Réservation'),
               BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Salon'),
             ],
