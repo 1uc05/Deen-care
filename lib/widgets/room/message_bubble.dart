@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/message.dart';
+import '../../core/constants/app_colors.dart';
 
 class MessageBubble extends StatelessWidget {
   final Message message;
@@ -15,13 +16,14 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Couleurs selon qui parle
+    debugPrint('Message coach ? ${message.isFromCoach}');
     final isCoach = message.isFromCoach;
-    final primaryColor = Theme.of(context).primaryColor;
+    final primaryColor = AppColors.primary;
     
     // Couleur différence coach/client
-    final backgroundColor = isCoach 
-        ? const Color(0xFF2196F3)      // Bleu pour coach
-        : const Color(0xFF4CAF50);     // Vert pour client
+    final backgroundColor = isCoach
+        ? AppColors.secondary      // Vert pour coach
+        : AppColors.noStatus;     // Gris pour autre personne
     
     // Couleur si c'est le message de l'utilisateur actuel
     final actualBackgroundColor = isFromCurrentUser
@@ -59,7 +61,7 @@ class MessageBubble extends StatelessWidget {
                       isCoach ? 'Coach' : 'Client',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: AppColors.textGrey,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -87,7 +89,7 @@ class MessageBubble extends StatelessWidget {
                       BoxShadow(
                         offset: const Offset(0, 1),
                         blurRadius: 2,
-                        color: Colors.black.withOpacity(0.1),
+                        color: AppColors.boxShadow,
                       ),
                     ],
                   ),
@@ -111,7 +113,7 @@ class MessageBubble extends StatelessWidget {
                       Text(
                         _formatTimestamp(message.timestamp),
                         style: TextStyle(
-                          color: textColor.withOpacity(0.7),
+                          color: Colors.grey.shade300,
                           fontSize: 12,
                         ),
                       ),
@@ -138,17 +140,17 @@ class MessageBubble extends StatelessWidget {
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: isCoach ? Colors.blue[100] : Colors.green[100],
+        color: isCoach ? AppColors.secondaryMedium : AppColors.primaryMedium,
         shape: BoxShape.circle,
         border: Border.all(
-          color: isCoach ? Colors.blue[300]! : Colors.green[300]!,
+          color: isCoach ? AppColors.secondary : AppColors.primary,
           width: 1,
         ),
       ),
       child: Icon(
         isCoach ? Icons.person : Icons.person_outline,
         size: 18,
-        color: isCoach ? Colors.blue[700] : Colors.green[700],
+        color: isCoach ? AppColors.secondary : AppColors.primary,
       ),
     );
   }

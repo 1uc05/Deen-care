@@ -86,7 +86,7 @@ class _MainScreenState extends State<MainScreen> {
             currentIndex: navigationProvider.currentIndex,
             onTap: (index) => navigationProvider.setIndex(index),
             type: BottomNavigationBarType.fixed,
-            selectedItemColor: AppColors.highLight,
+            selectedItemColor: AppColors.primary,
             unselectedItemColor: AppColors.textGrey,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),

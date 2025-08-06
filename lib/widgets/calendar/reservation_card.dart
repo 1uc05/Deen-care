@@ -26,15 +26,15 @@ class ReservationCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.highLight.withOpacity(0.1),
-            AppColors.highLight.withOpacity(0.05),
+            AppColors.primaryLight,
+            AppColors.primarySubtle,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.highLight.withOpacity(0.3),
+          color: AppColors.primaryMedium,
           width: 1.5,
         ),
       ),
@@ -47,7 +47,7 @@ class ReservationCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.highLight,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -64,7 +64,7 @@ class ReservationCard extends StatelessWidget {
                     Text(
                       'Votre réservation',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.highLight,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -92,7 +92,7 @@ class ReservationCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.highLight.withOpacity(0.1),
+                  color: AppColors.primaryLight,
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -104,7 +104,7 @@ class ReservationCard extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.calendar_today,
-                      color: AppColors.highLight,
+                      color: AppColors.primary,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -121,7 +121,7 @@ class ReservationCard extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.schedule,
-                      color: AppColors.highLight,
+                      color: AppColors.primary,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -155,8 +155,8 @@ class ReservationCard extends StatelessWidget {
                     : const Icon(Icons.cancel_outlined, size: 18),
                   label: const Text('Annuler'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red.shade600,
-                    side: BorderSide(color: Colors.red.shade300),
+                    foregroundColor: AppColors.error,
+                    side: BorderSide(color: AppColors.error),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -174,7 +174,7 @@ class ReservationCard extends StatelessWidget {
                   icon: const Icon(Icons.chat, size: 18),
                   label: const Text('Aller au salon'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.highLight,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(

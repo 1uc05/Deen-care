@@ -43,12 +43,12 @@ class BookingPopup extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.highLight.withOpacity(0.1),
+            color: AppColors.primaryLight,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
             Icons.event_available,
-            color: AppColors.highLight,
+            color: AppColors.primary,
             size: 28,
           ),
         ),
@@ -62,7 +62,7 @@ class BookingPopup extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.highLight,
+                  color: AppColors.primary,
                 ),
               ),
               Text(
@@ -87,7 +87,7 @@ class BookingPopup extends StatelessWidget {
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.highLight.withOpacity(0.2),
+          color: AppColors.primarySoft,
           width: 1,
         ),
       ),
@@ -126,7 +126,7 @@ class BookingPopup extends StatelessWidget {
         Icon(
           icon,
           size: 18,
-          color: AppColors.highLight,
+          color: AppColors.primary,
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -183,7 +183,7 @@ class BookingPopup extends StatelessWidget {
           child: ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.highLight,
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(

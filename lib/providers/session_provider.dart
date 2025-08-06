@@ -31,6 +31,8 @@ class SessionProvider extends ChangeNotifier {
   VoiceCallState _voiceCallState = VoiceCallState.idle;
   List<Message> _messages = [];
   bool _isLoadingMessages = false;
+    bool _isSpeakerOn = false;
+  
 
   // Streams et subscriptions
   StreamSubscription<Session?>? _activeSessionStream;
@@ -53,6 +55,7 @@ class SessionProvider extends ChangeNotifier {
   RoomConnectionState get connectionState => _connectionState;
   bool get isLoadingMessages => _isLoadingMessages;
   VoiceCallState get voiceCallState => _voiceCallState;
+  bool get isSpeakerOn => _isSpeakerOn;
 
 
   // Logique métier - Règles de validation
@@ -125,8 +128,8 @@ class SessionProvider extends ChangeNotifier {
           await _agoraService.initializeChatSDK();
 
           // Authentifier l'utilisateur
-          final token = await _cloudFunctionsService.generateChatToken();
-          await _agoraService.loginUser(_currentUserId!, token);
+          final chatToken = await _cloudFunctionsService.generateChatToken();
+          await _agoraService.loginUser(_currentUserId!, chatToken);
 
           // Rejoindre la room
           await _agoraService.joinChatGroup(_currentSession!.agoraChannelId!);
@@ -599,17 +602,43 @@ class SessionProvider extends ChangeNotifier {
     _voiceCallState = VoiceCallState.calling;
     notifyListeners();
     
-    // Dans RoomProvider, channelId  vallait currentRoomId, avec :
-    //String? get currentRoomId => _currentSession?.agoraChannelId;
-    await _agoraService.joinVoiceChannel(
-      channelId: 'TODO',
-    );
+    try {
+      
+      final voiceToken = await _cloudFunctionsService.generateVoiceToken(_currentSession!.agoraChannelId!);
+
+      await _agoraService.joinVoiceChannel(_currentSession!.agoraChannelId!, voiceToken);
+
+    } catch (e) {
+      _setError('Erreur initialisation RTC: $e');
+      return;
+    }
+
   }
 
   /// Termine un appel vocal
   Future<void> _endVoiceCall() async {
     debugPrint('SessionProvider: Ending voice call');
     await _agoraService.leaveVoiceChannel();
+  }
+
+  /// Toggle haut-parleur
+  Future<void> toggleSpeaker() async {
+    try {
+      _isSpeakerOn = !_isSpeakerOn;
+      await _agoraService.setSpeakerphone(_isSpeakerOn);
+      notifyListeners();
+    } catch (e) {
+      _setError('Erreur changement haut-parleur: $e');
+    }
+  }
+
+  /// Transformation multiple
+  List<Message> _convertChatMessagesToBusinessMessages(List<ChatMessage> chatMessages) {
+    return chatMessages
+        .map(_convertChatMessageToBusinessMessage)
+        .where((msg) => msg != null)
+        .cast<Message>()
+        .toList();
   }
 
   /// Transformations métier : ChatMessage → Message business
@@ -621,28 +650,21 @@ class SessionProvider extends ChangeNotifier {
       
       final textBody = chatMessage.body as ChatTextMessageBody;
       final senderId = chatMessage.from ?? '';
+
+      final isFromCoach = senderId == _currentSession?.coachId?.toLowerCase();
       
       return Message(
         id: chatMessage.msgId,
         text: textBody.content,
         senderId: senderId,
         timestamp: DateTime.fromMillisecondsSinceEpoch(chatMessage.serverTime),
-        isFromCoach: false,
+        isFromCoach: isFromCoach,
       );
       
     } catch (e) {
       debugPrint('SessionProvider: Error converting message: $e');
       return null;
     }
-  }
-
-  /// Transformation multiple
-  List<Message> _convertChatMessagesToBusinessMessages(List<ChatMessage> chatMessages) {
-    return chatMessages
-        .map(_convertChatMessageToBusinessMessage)
-        .where((msg) => msg != null)
-        .cast<Message>()
-        .toList();
   }
 
   /// Anti-doublons
@@ -747,7 +769,6 @@ class SessionProvider extends ChangeNotifier {
     }
   }
   
-
   /// ========== PRIVATE: CLEAN ET ERROR ==========
   /// Annule les modifications en cas d'erreur
   Future<void> _rollbackBooking(

@@ -7,6 +7,7 @@
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { ChatTokenBuilder } from 'agora-token';
+import { RtcTokenBuilder, RtcRole } from 'agora-token';
 import fetch from 'node-fetch'; 
 
 admin.initializeApp();
@@ -279,3 +280,62 @@ export const addUser = functions
       throw new functions.https.HttpsError('internal', `Failed to create Agora user`);
     }
   });
+
+  
+export const getRtcToken = functions
+  .region('europe-west1')
+  .https.onCall(async (data, context) => {
+    console.log('Creating Agora RTC token...');
+
+
+    if (!context.auth?.uid) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+
+    const { channelName } = data;
+
+    if (!channelName) {
+      throw new functions.https.HttpsError('invalid-argument', 'channelName is required');
+    }
+
+    try {
+      const userDoc = await admin.firestore()
+        .collection('users')
+        .doc(context.auth.uid)
+        .get();
+
+      if (!userDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'User not found in database');
+      }
+
+      const uid = 0; // 0 = auto-assigné par Agora
+      const expireTimeInSeconds = 3600;
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      const tokenExpire = currentTimestamp + expireTimeInSeconds;
+      const privilegeExpire = currentTimestamp + expireTimeInSeconds;
+
+
+      // Token RTC avec permissions Broadcaster
+      const token = RtcTokenBuilder.buildTokenWithUid(
+        APP_ID,
+        APP_CERTIFICATE,
+        channelName,
+        uid,
+        RtcRole.PUBLISHER, // Peut parler et écouter
+        tokenExpire,
+        privilegeExpire
+      );
+
+      return { 
+        token, 
+        expirationTime: tokenExpire,
+        channelName,
+        uid: 0
+      };
+      
+    } catch (error) {
+      console.error('Error generating Agora RTC token:', error);
+      throw new functions.https.HttpsError('internal', 'Failed to generate RTC token');
+    }
+  });
+

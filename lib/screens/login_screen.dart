@@ -44,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       backgroundColor: AppColors.error,
                       action: SnackBarAction(
                         label: 'OK',
-                        textColor: AppColors.textWhite,
+                        textColor: Colors.white,
                         onPressed: () => authProvider.clearError(),
                       ),
                     ),
@@ -155,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                                 child: authProvider.isLoading
-                                    ? const CircularProgressIndicator(color: AppColors.textWhite)
+                                    ? const CircularProgressIndicator(color: Colors.white)
                                     : Text(
                                         _isSignUpMode ? 'S\'inscrire' : 'Se connecter',
                                         style: const TextStyle(fontSize: 16),

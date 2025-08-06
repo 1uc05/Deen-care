@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/constants/app_colors.dart';
 import '../providers/session_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/room/message_bubble.dart';
@@ -94,7 +95,7 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
   /// AppBar avec informations de la session
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: Theme.of(context).primaryColor,
+      backgroundColor: AppColors.primary,
       foregroundColor: Colors.white,
       elevation: 2,
       title: Consumer<SessionProvider>(
@@ -142,6 +143,10 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
               decoration: BoxDecoration(
                 color: _getStatusColor(session.effectiveStatus),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1,
+                ),
               ),
               child: Text(
                 _getStatusText(session.effectiveStatus),
@@ -170,18 +175,18 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
 
     switch (sessionProvider.connectionState) {
       case RoomConnectionState.connecting:
-        backgroundColor = Colors.orange;
+        backgroundColor = AppColors.accent;
         message = 'Connexion en cours...';
         icon = Icons.sync;
         break;
       case RoomConnectionState.error:
-        backgroundColor = Colors.red;
+        backgroundColor = AppColors.error;
         message = 'Erreur de connexion';
         icon = Icons.error_outline;
         break;
       case RoomConnectionState.disconnected:
       default:
-        backgroundColor = Colors.grey;
+        backgroundColor = AppColors.noStatus;
         message = 'Non connecté';
         icon = Icons.cloud_off;
         break;
@@ -232,14 +237,14 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
             Icon(
               Icons.chat_bubble_outline,
               size: 64,
-              color: Colors.grey,
+              color: AppColors.noStatus,
             ),
             SizedBox(height: 16),
             Text(
               'Aucun message',
               style: TextStyle(
                 fontSize: 18,
-                color: Colors.grey,
+                color: AppColors.noStatus,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -248,7 +253,7 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
               'Commencez la conversation !',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey,
+                color: AppColors.noStatus,
               ),
             ),
           ],
@@ -280,7 +285,7 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
           BoxShadow(
             offset: const Offset(0, -1),
             blurRadius: 4,
-            color: Colors.black.withOpacity(0.1),
+            color: AppColors.boxShadow,
           ),
         ],
       ),
@@ -296,6 +301,8 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
                   state: sessionProvider.voiceCallState,
                   onPressed: _handleVoiceCallAction,
                   enabled: sessionProvider.voiceCallButtonEnabled,
+                  isSpeakerOn: sessionProvider.isSpeakerOn,
+                  onSpeakerToggle: () => sessionProvider.toggleSpeaker(),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -361,7 +368,7 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.boxShadow,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -387,13 +394,13 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'scheduled':
-        return Colors.blue;
+        return AppColors.primary;
       case 'inProgress':
-        return Colors.green;
+        return AppColors.secondary;
       case 'completed':
-        return Colors.grey;
+        return AppColors.noStatus;
       default:
-        return Colors.orange;
+        return AppColors.accent;
     }
   }
 
@@ -427,14 +434,14 @@ class _NoSessionView extends StatelessWidget {
           Icon(
             Icons.event_busy,
             size: 64,
-            color: Colors.grey,
+            color: AppColors.textGrey,
           ),
           SizedBox(height: 16),
           Text(
             'Aucune session active',
             style: TextStyle(
               fontSize: 18,
-              color: Colors.grey,
+              color: AppColors.textGrey,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -443,7 +450,7 @@ class _NoSessionView extends StatelessWidget {
             'Réservez un créneau pour accéder au salon',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey,
+              color: AppColors.textGrey,
             ),
             textAlign: TextAlign.center,
           ),

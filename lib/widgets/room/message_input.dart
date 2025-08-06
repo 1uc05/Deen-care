@@ -1,3 +1,4 @@
+import 'package:caunvo/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -135,7 +136,7 @@ class _MessageInputState extends State<MessageInput> {
               icon: Icon(
                 Icons.send_rounded,
                 color: (_isMessageValid && widget.enabled) 
-                    ? Theme.of(context).primaryColor 
+                    ? AppColors.primary 
                     : Colors.grey[400],
               ),
               tooltip: 'Envoyer le message',

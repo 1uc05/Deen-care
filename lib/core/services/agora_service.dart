@@ -78,9 +78,6 @@ class AgoraService {
         appId: AppConstants.agoraAppID,
         channelProfile: ChannelProfileType.channelProfileCommunication,
       ));
-
-      await _rtcEngine!.enableAudio();
-      await _rtcEngine!.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
       
       // Handler pour les événements RTC
       _rtcEngine!.registerEventHandler(RtcEngineEventHandler(
@@ -274,13 +271,11 @@ class AgoraService {
       throw Exception('History fetch failed: ${e.code} - ${e.description}');
     }
   }
-
+//setAudioSessionOperationRestriction
   /// Rejoint un canal vocal RTC
-  Future<void> joinVoiceChannel({
-    required String channelId,
-    String? token,
-    int uid = 0,
-  }) async {
+  Future<void> joinVoiceChannel(String channelId, String token) async {
+    debugPrint('AgoraService: Joining voice channel: $channelId');
+
     if (!_isRtcInitialized) {
       throw Exception('RTC Engine not initialized');
     }
@@ -299,19 +294,44 @@ class AgoraService {
 
       _updateVoiceState(VoiceConnectionState.connecting);
 
+      // Configuration AVANT join
+      
+      // Configuration audio de base
+      await _rtcEngine!.setAudioProfile(
+        profile: AudioProfileType.audioProfileSpeechStandard,
+        scenario: AudioScenarioType.audioScenarioDefault,
+      );
+
+      // Paramètres audio
+      await _rtcEngine!.setParameters('{"che.audio.enable_aec": true}');
+      await _rtcEngine!.setParameters('{"che.audio.enable_agc": true}');
+      await _rtcEngine!.setParameters('{"che.audio.enable_ns": true}');
+
+      // Activation audio
+      await _rtcEngine!.enableAudio();
+      await _rtcEngine!.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+      await _rtcEngine!.enableLocalAudio(true);
+      
+      // S'assurer que le micro n'est pas muted
+      await _rtcEngine!.muteLocalAudioStream(false);
+
+      // Rejoindre le canal
       await _rtcEngine!.joinChannel(
-        token: token ?? '',
+        token: token,
         channelId: channelId,
-        uid: uid,
         options: const ChannelMediaOptions(
           clientRoleType: ClientRoleType.clientRoleBroadcaster,
           channelProfile: ChannelProfileType.channelProfileCommunication,
+          publishMicrophoneTrack: true,
+          autoSubscribeAudio: true,
         ),
+        uid: 0,
       );
       
-      debugPrint('AgoraService: Joining voice channel: $channelId');
+      debugPrint('AgoraService: Voice channel join initiated');
       
     } catch (e) {
+      await leaveVoiceChannel();
       _updateVoiceState(VoiceConnectionState.disconnected);
       debugPrint('AgoraService: Failed to join voice channel: $e');
       rethrow;
@@ -340,6 +360,15 @@ class AgoraService {
       _voiceState = newState;
       _voiceStateController.add(newState);
     }
+  }
+
+  Future<void> setSpeakerphone(bool enabled) async {
+    if (_rtcEngine == null) {
+      throw Exception('RTC Engine non initialisé');
+    }
+    
+    await _rtcEngine!.setEnableSpeakerphone(enabled);
+    debugPrint('Haut-parleur: ${enabled ? 'ON' : 'OFF'}');
   }
 
   /// Nettoyage complet du service

@@ -43,13 +43,13 @@ class _MonthCalendarState extends State<MonthCalendar> {
           onPressed: () => _changeMonth(-1),
           icon: const Icon(Icons.chevron_left, size: 28),
           style: IconButton.styleFrom(
-            foregroundColor: AppColors.highLight,
+            foregroundColor: AppColors.primary,
           ),
         ),
         Text(
           AppDateUtils.formatMonthYear(_currentMonth),
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: AppColors.highLight,
+            color: AppColors.primary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -57,7 +57,7 @@ class _MonthCalendarState extends State<MonthCalendar> {
           onPressed: () => _changeMonth(1),
           icon: const Icon(Icons.chevron_right, size: 28),
           style: IconButton.styleFrom(
-            foregroundColor: AppColors.highLight,
+            foregroundColor: AppColors.primary,
           ),
         ),
       ],
@@ -115,7 +115,7 @@ class _MonthCalendarState extends State<MonthCalendar> {
           color: _getDayBackgroundColor(isToday, hasSlots, isCurrentMonth, isPast),
           borderRadius: BorderRadius.circular(8),
           border: isToday 
-            ? Border.all(color: AppColors.highLight, width: 2)
+            ? Border.all(color: AppColors.primary, width: 2)
             : null,
         ),
         child: Center(
@@ -134,15 +134,15 @@ class _MonthCalendarState extends State<MonthCalendar> {
 
   Color _getDayBackgroundColor(bool isToday, bool hasSlots, bool isCurrentMonth, bool isPast) {
     if (!isCurrentMonth || isPast) return Colors.transparent;
-    if (hasSlots) return AppColors.highLight.withOpacity(0.1);
+    if (hasSlots) return AppColors.primaryLight;
     return Colors.transparent;
   }
 
   Color _getDayTextColor(bool isCurrentMonth, bool isPast, bool hasSlots, bool isToday) {
     if (!isCurrentMonth) return Colors.grey.shade300;
     if (isPast) return Colors.grey.shade400;
-    if (hasSlots) return AppColors.highLight;
-    if (isToday) return AppColors.highLight;
+    if (hasSlots) return AppColors.primary;
+    if (isToday) return AppColors.primary;
     return Colors.grey.shade600;
   }
 

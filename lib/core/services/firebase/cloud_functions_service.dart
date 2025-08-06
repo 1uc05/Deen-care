@@ -60,6 +60,24 @@ class CloudFunctionsService extends FirebaseService {
     }
   }
 
+  Future<String> generateVoiceToken(String channelName) async {
+    try {
+      validateCurrentUser();
+
+      final callable = _functions.httpsCallable('getRtcToken');
+      
+      final result = await callable.call({
+        'channelName': channelName
+      });
+
+      final token = result.data['token'] as String;
+      return token;
+    } catch (e) {
+      debugPrint('CloudFunctions error: $e');
+      rethrow;
+    }
+  }
+
   Future<String> testCloudFunction() async {
     final testCallable = _functions.httpsCallable('testAuth');
     try {

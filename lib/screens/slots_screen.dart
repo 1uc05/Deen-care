@@ -28,11 +28,11 @@ class _SlotsScreenState extends State<SlotsScreen> {
       appBar: AppBar(
         title: Text(
           'Créneaux disponibles',
-          style: TextStyle(color: AppColors.highLight),
+          style: TextStyle(color: AppColors.primary),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: AppColors.highLight,
+        foregroundColor: AppColors.primary,
         centerTitle: true,
       ),
       body: Column(
@@ -47,10 +47,10 @@ class _SlotsScreenState extends State<SlotsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.highLight.withOpacity(0.1),
+                  color: AppColors.primaryLight,
                   border: Border(
                     bottom: BorderSide(
-                      color: AppColors.highLight.withOpacity(0.2),
+                      color: AppColors.primarySoft,
                       width: 1,
                     ),
                   ),
@@ -61,7 +61,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                     Text(
                       AppDateUtils.formatFullDate(widget.selectedDate),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.highLight,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -72,7 +72,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                         : 'Sélectionnez un créneau pour réserver',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: hasActiveSession 
-                          ? Colors.orange.shade700  // Couleur différente si bloqué
+                          ? AppColors.accent
                           : AppColors.textGrey,
                       ),
                     ),
@@ -81,10 +81,10 @@ class _SlotsScreenState extends State<SlotsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
+                          color: AppColors.accent,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Colors.orange.shade200,
+                            color: AppColors.accent,
                             width: 1,
                           ),
                         ),
@@ -94,13 +94,13 @@ class _SlotsScreenState extends State<SlotsScreen> {
                             Icon(
                               Icons.info_outline,
                               size: 16,
-                              color: Colors.orange.shade700,
+                              color: AppColors.accent,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               'Vous ne pouvez pas réserver plusieurs créneaux',
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.orange.shade700,
+                                color: AppColors.accent,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -121,7 +121,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                 if (calendarProvider.isLoading) {
                   return const Center(
                     child: CircularProgressIndicator(
-                      color: AppColors.highLight,
+                      color: AppColors.primary,
                     ),
                   );
                 }
@@ -171,7 +171,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
             border: Border.all(
               color: isBlocked 
                 ? Colors.grey.shade300
-                : AppColors.highLight.withOpacity(0.2),
+                : AppColors.primarySoft,
               width: 1,
             ),
           ),
@@ -184,14 +184,14 @@ class _SlotsScreenState extends State<SlotsScreen> {
                 decoration: BoxDecoration(
                   color: isBlocked
                     ? Colors.grey.shade100
-                    : AppColors.highLight.withOpacity(0.1),
+                    : AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Icon(
                   isBlocked ? Icons.lock_outline : Icons.access_time,
                   color: isBlocked
                     ? Colors.grey.shade400
-                    : AppColors.highLight,
+                    : AppColors.primary,
                   size: 24,
                 ),
               ),
@@ -207,7 +207,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: isBlocked
                           ? Colors.grey.shade500
-                          : AppColors.highLight,
+                          : AppColors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -233,7 +233,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppColors.highLight,
+                    color: AppColors.primary,
                   ),
                 )
               else if (isBlocked)
@@ -245,7 +245,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
               else
                 Icon(
                   Icons.arrow_forward_ios,
-                  color: AppColors.highLight,
+                  color: AppColors.primary,
                   size: 16,
                 ),
             ],
@@ -285,7 +285,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
             icon: const Icon(Icons.arrow_back),
             label: const Text('Retour au calendrier'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.highLight,
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
           ),
@@ -320,7 +320,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Créneau réservé avec succès !'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -335,7 +335,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
