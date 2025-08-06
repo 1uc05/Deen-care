@@ -218,6 +218,13 @@ class TextsProvider extends ChangeNotifier {
   void _clearError() {
     _setError(null);
   }
+  
+  /// Remet à zéro l'état du provider
+  Future<void> reset() async {
+    _clearError();
+    _setLoading(false);
+    notifyListeners();
+  }
 
   // Plus de StreamSubscriptions à disposer
   @override
