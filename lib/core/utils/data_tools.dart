@@ -143,8 +143,8 @@ class DatabaseTools {
       debugPrint('❌ Erreur lors du nettoyage des sessions: $e');
       rethrow;
     }
-
   }
+
   /// Fonction helper pour nettoyer et recréer les données de test
   static Future<void> resetTestData() async {
     debugPrint('🧹 Nettoyage des données...');
@@ -158,5 +158,30 @@ class DatabaseTools {
     // await createTestSlots();
     
     debugPrint('✨ Reset terminé !');
+  }
+
+
+  /// Nettoie les textes
+  static Future<void> clearAllTexts() async {
+    try {
+      final textsCollection = _firestore.collection('texts');
+      final snapshot = await textsCollection.get();
+
+      if (snapshot.docs.isEmpty) {
+        debugPrint('⚠️ Aucun texte trouvé');
+        return;
+      }
+
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      await batch.commit();
+      debugPrint('✅ Textes nettoyés avec succès');
+    } catch (e) {
+      debugPrint('❌ Erreur lors du nettoyage des textes: $e');
+      rethrow;
+    }
   }
 }

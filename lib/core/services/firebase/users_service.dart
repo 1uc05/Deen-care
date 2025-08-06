@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '/models/user.dart' as app_models;
+import '../../../models/text_progress.dart';
+import '../../../models/arabic_text.dart';
 import '../firebase_service.dart';
+import '../../constants/app_constants.dart';
 
 class UsersService extends FirebaseService {
   static final UsersService _instance = UsersService._internal();
@@ -173,6 +176,145 @@ class UsersService extends FirebaseService {
       return await getCurrentSessionId();
     } catch (e) {
       throw handleFirestoreException(e, 'suppression ID de session');
+    }
+  }
+
+  // GESTION TEXTS
+  /// Récupère la progression de l'utilisateur (max 3 éléments)
+  Future<List<TextProgress>> getUserProgress() async {
+    try {
+      final snapshot = await firestore
+          .collection(_collection)
+          .doc(currentUserId)
+          .collection('textsProgress')
+          .orderBy('lastAccessedAt', descending: true)
+          .limit(AppConstants.maxTrackedTexts)
+          .get();
+          
+      return snapshot.docs
+          .map((doc) => TextProgress.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      setError('Erreur lors du chargement de la progression: $e');
+      return [];
+    }
+  }
+
+  /// Ajoute un texte au suivi de l'utilisateur (vérification limite 3)
+  Future<void> addTextToProgress(String textId) async {
+    try {
+      // Vérification de la limite côté service
+      final currentProgressSnapshot = await firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('textsProgress')
+          .get();
+
+      if (currentProgressSnapshot.docs.length >= 3) {
+        setError('Vous ne pouvez suivre que 3 textes maximum');
+        throw Exception('Limite de 3 textes atteinte');
+      }
+
+      // Vérifier si le texte n'est pas déjà suivi
+      final existingDoc = await firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('textsProgress')
+          .doc(textId)
+          .get();
+
+      if (existingDoc.exists) {
+        setError('Ce texte est déjà dans votre suivi');
+        throw Exception('Texte déjà suivi');
+      }
+
+      // Ajouter le nouveau texte avec progression à 0
+      final newProgress = TextProgress(
+        textId: textId,
+        currentSentence: 0,
+        lastAccessedAt: DateTime.now(),
+      );
+
+      await firestore
+          .collection(_collection)
+          .doc(currentUserId)
+          .collection('textsProgress')
+          .doc(textId)
+          .set(newProgress.toFirestore());
+    } catch (e) {
+      if (e.toString().contains('Limite de 3 textes atteinte') || 
+          e.toString().contains('Texte déjà suivi')) {
+        rethrow;
+      }
+      setError('Erreur lors de l\'ajout du texte: $e');
+      rethrow;
+    }
+  }
+
+  /// Retire un texte du suivi de l'utilisateur
+  Future<void> removeTextFromProgress(String textId) async {
+    try {
+      await firestore
+          .collection(_collection)
+          .doc(currentUserId)
+          .collection('textsProgress')
+          .doc(textId)
+          .delete();
+    } catch (e) {
+      setError('Erreur lors de la suppression: $e');
+      rethrow;
+    }
+  }
+
+  /// Sauvegarde ou met à jour la progression d'un texte
+  Future<void> saveProgress(String textId, int currentSentence) async {
+    try {
+      final updatedProgress = TextProgress(
+        textId: textId,
+        currentSentence: currentSentence,
+        lastAccessedAt: DateTime.now(),
+      );
+
+      await firestore
+          .collection(_collection)
+          .doc(currentUserId)
+          .collection('textsProgress')
+          .doc(textId)
+          .set(updatedProgress.toFirestore());
+    } catch (e) {
+      setError('Erreur lors de la sauvegarde: $e');
+      rethrow;
+    }
+  }
+
+  /// Remet à zéro la progression d'un texte spécifique
+  Future<void> resetTextProgress(String textId) async {
+    try {
+      final progressRef = firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('textsProgress')
+          .doc(textId);
+
+      final doc = await progressRef.get();
+      if (!doc.exists) {
+        setError('Progression non trouvée pour ce texte');
+        throw Exception('Progression non trouvée');
+      }
+
+      final currentProgress = TextProgress.fromFirestore(doc);
+      final resetProgress = currentProgress.copyWith(
+        currentSentence: 0,
+        lastAccessedAt: DateTime.now(),
+      );
+
+      await progressRef.set(resetProgress.toFirestore());
+    } catch (e) {
+      if (e.toString().contains('Progression non trouvée')) {
+        rethrow;
+      }
+      setError('Erreur lors de la remise à zéro: $e');
+      rethrow;
     }
   }
 

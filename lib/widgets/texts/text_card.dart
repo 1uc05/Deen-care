@@ -1,139 +1,281 @@
 import 'package:flutter/material.dart';
-import '../../models/text.dart';
-import '../../models/user_progress.dart';
+import 'package:provider/provider.dart';
+import '../../models/arabic_text.dart';
+import '../../models/text_progress.dart';
 import '../../core/constants/app_colors.dart';
+import '../../providers/texts_provider.dart';
 
 class TextCard extends StatelessWidget {
   final ArabicText text;
-  final UserProgress? progress;
+  final bool isTracked;
+  final TextProgress? progress;
   final VoidCallback onTap;
 
   const TextCard({
-    Key? key,
+    super.key,
     required this.text,
+    required this.isTracked,
     this.progress,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isTracked = progress != null;
-
-return Card(
-  elevation: isTracked ? 4 : 2,
-  color: isTracked ? AppColors.backgroundLight : AppColors.background,
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(8),
-    side: isTracked 
-      ? BorderSide(color: AppColors.primary, width: 1)
-      : BorderSide.none,
-  ),
-  child: InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(8),
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // En-tête avec titre et badge
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  text.title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        border: isTracked 
+          ? Border.all(color: AppColors.primary, width: 2)
+          : null,
+        boxShadow: [
+          BoxShadow(
+            offset: const Offset(0, 2),
+            blurRadius: 8,
+            color: isTracked 
+              ? AppColors.primaryLight
+              : AppColors.boxShadow,
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header avec numéro discret et action favorite
+                Row(
+                  children: [
+                    // Numéro discret
+                    Text(
+                      'Texte ${text.id}',
+                      style: TextStyle(
+                        color: AppColors.textGreyLight,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    
+                    const Spacer(),
+                    
+                    // Bouton étoile pour ajouter/retirer
+                    _buildFavoriteButton(context),
+                    
+                    const SizedBox(width: 8),
+                    
+                    // Flèche navigation
+                    Icon(
+                      Icons.chevron_right,
+                      color: AppColors.textGreyLight,
+                      size: 20,
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 12),
+                
+                // Titres avec meilleur espacement  
+                Text(
+                  text.titleArabic,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.textDark,
-                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                    letterSpacing: 0.2,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              if (isTracked) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                
+                const SizedBox(height: 6),
+                
+                Text(
+                  text.titleFrench,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textGrey,
+                    height: 1.3,
+                    fontStyle: FontStyle.italic,
                   ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'SUIVI',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                
+                // Progression redesignée
+                if (isTracked && progress != null) ...[
+                  const SizedBox(height: 16),
+                  _buildProgressIndicator(),
+                ],
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFavoriteButton(BuildContext context) {
+    return Consumer<TextsProvider>(
+      builder: (context, provider, child) {
+        return InkWell(
+          onTap: () => _handleFavoriteToggle(context, provider),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            child: Icon(
+              isTracked ? Icons.star : Icons.star_border,
+              color: isTracked ? AppColors.secondary : AppColors.textGreyLight,
+              size: 22,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleFavoriteToggle(BuildContext context, TextsProvider provider) async {    
+    try {
+      if (isTracked) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Retirer des favoris'),
+            backgroundColor: AppColors.backgroundLight,
+            content: const Text('Êtes-vous sûr de vouloir retirer ce texte de vos favoris ?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Non', style: TextStyle(color: AppColors.textDark)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Oui', style: TextStyle(color: AppColors.error)),
+              ),
             ],
           ),
-          
-          const SizedBox(height: 12),
-          
-          // Informations de progression ou invitation
-          if (isTracked) ...[
-            // Barre de progression
-            LinearProgressIndicator(
-              value: text.totalSegments > 0 
-                ? progress!.currentSegment / text.totalSegments
-                : 0.0,
-              backgroundColor: AppColors.textGreyLight.withOpacity(0.3),
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+        );
+        if (confirmed != true) return;
+        // Retirer des favoris
+        await provider.removeTextFromProgress(text.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Vous ne suivez plus ce texte'),
+              backgroundColor: AppColors.textGrey,
+              duration: const Duration(seconds: 2),
             ),
-            
-            const SizedBox(height: 8),
-            
-            // Texte de progression
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${progress!.currentSegment}/${text.totalSegments} segments',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textGrey,
-                  ),
-                ),
-                Text(
-                  text.totalSegments > 0
-                    ? '${((progress!.currentSegment / text.totalSegments) * 100).round()}%'
-                    : '0%',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textGrey,
+          );
+        }
+      } else {
+        // Ajouter aux favoris 
+        if(!provider.canAddMoreTexts) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Maximum 3 textes suivis autorisés'),
+              backgroundColor: AppColors.noStatus,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          return;
+        }
+        final success = await provider.addTextToProgress(text.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(success 
+                ? 'Texte ajouté à vos favoris'
+                : 'Maximum 3 textes suivis autorisés'),
+              backgroundColor: success ? AppColors.secondary : AppColors.noStatus,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildProgressIndicator() {
+    if (progress == null) return const SizedBox.shrink();
+    
+    final progressPercent = progress!.currentSentence / text.totalSentences;
+    final progressText = '${progress!.currentSentence}/${text.totalSentences} segments';
+    
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppColors.primarySubtle,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.primaryLight,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.trending_up,
+                size: 16,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  progressText,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.primary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-              ],
-            ),
-          ] else ...[
-            // Invitation à suivre le texte
-            Row(
-              children: [
-                Icon(
-                  Icons.add_circle_outline,
-                  size: 16,
-                  color: AppColors.textGrey,
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Appuyer pour suivre',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textGrey,
-                    fontStyle: FontStyle.italic,
+                child: Text(
+                  '${(progressPercent * 100).round()}%',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 1),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progressPercent,
+              backgroundColor: AppColors.backgroundLight,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              minHeight: 2,
             ),
-          ],
+          ),
         ],
       ),
-    ),
-  ),
-);
-
+    );
   }
 }

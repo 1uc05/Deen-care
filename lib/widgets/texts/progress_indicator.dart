@@ -2,58 +2,69 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
 class TextProgressIndicator extends StatelessWidget {
-  final int currentSegment;
-  final int totalSegments;
-  final bool showPercentage;
+  final int currentSentence;
+  final int totalSentences;
 
   const TextProgressIndicator({
-    Key? key,
-    required this.currentSegment,
-    required this.totalSegments,
-    this.showPercentage = false,
-  }) : super(key: key);
+    super.key,
+    required this.currentSentence,
+    required this.totalSentences,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final progress = totalSegments > 0 ? currentSegment / totalSegments : 0.0;
+    final double progress = totalSentences > 0 
+        ? currentSentence / totalSentences 
+        : 0.0;
+    final int percentage = (progress * 100).round();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Barre de progression
-        LinearProgressIndicator(
-          value: progress,
-          backgroundColor: AppColors.textGreyLight.withOpacity(0.3),
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-          minHeight: 6,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.backgroundLight,
+            width: 1,
+          ),
         ),
-        
-        const SizedBox(height: 8),
-        
-        // Texte de progression
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              showPercentage
-                ? '${(progress * 100).round()}% complété'
-                : '$currentSegment/$totalSegments segments',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textGrey,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            if (!showPercentage)
+      ),
+      child: Column(
+        children: [
+          // Barre de progression
+          LinearProgressIndicator(
+            value: progress,
+            backgroundColor: AppColors.backgroundLight,
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.secondary),
+            minHeight: 6,
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Informations progression
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
               Text(
-                '${(progress * 100).round()}%',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.primary,
+                '$currentSentence/$totalSentences segments',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textGrey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                '$percentage%',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.secondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

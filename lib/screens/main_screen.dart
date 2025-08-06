@@ -90,6 +90,7 @@ class _MainScreenState extends State<MainScreen> {
             type: BottomNavigationBarType.fixed,
             selectedItemColor: AppColors.primary,
             unselectedItemColor: AppColors.textGrey,
+            backgroundColor: AppColors.backgroundLight,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
               BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Mémorisation'), //menu_book, school, auto_stories

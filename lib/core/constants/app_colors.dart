@@ -36,9 +36,15 @@ class AppColors {
   static Color get primaryStrong    => primary.withOpacity(strong);     // 0.5
   static Color get primaryBold      => primary.withOpacity(bold);       // 0.7
 
+  static Color get secondarySubtle    => secondary.withOpacity(subtle);     // 0.05
+  static Color get secondaryLight     => secondary.withOpacity(light);      // 0.1
+  static Color get secondarySoft      => secondary.withOpacity(soft);       // 0.2
+  static Color get secondaryMedium    => secondary.withOpacity(medium);     // 0.3
+  static Color get secondaryStrong    => secondary.withOpacity(strong);     // 0.5
+  static Color get secondaryBold      => secondary.withOpacity(bold);       // 0.7
+
 
   static Color get warningLight     => accent.withOpacity(light); 
   static Color get errorLight       => error.withOpacity(light);        // 0.1
-  static Color get secondaryMedium  => secondary.withOpacity(medium);      // 0.1
   static Color get boxShadow        => Colors.black.withOpacity(light); // 0.1
 }

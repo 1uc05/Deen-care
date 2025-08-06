@@ -38,6 +38,7 @@ void main() async {
   // await DatabaseTools.clearCollection('sessions');
   // await DatabaseTools.clearCollection('slots');
   // await DatabaseTools.createTestSlots();
+  // await DatabaseTools.clearAllTexts();
 
   runApp(
     MultiProvider(

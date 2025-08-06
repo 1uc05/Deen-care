@@ -17,4 +17,7 @@ class AppConstants {
   static String get   agoraDevToken   => dotenv.env['AGORA_USR_DEV_TOKEN'] ?? '';
   static const String agoraAppID      = '38cea02d0d594ca1956bb1301d7e9676';
   static const String agoraAppKey     = '711376348#1582345';
+
+  // Texts
+  static const int maxTrackedTexts = 3;
 }
