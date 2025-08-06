@@ -54,7 +54,7 @@ class TextCard extends StatelessWidget {
                   children: [
                     // Numéro discret
                     Text(
-                      'Texte ${text.id}',
+                      'Sourate ${text.id}',
                       style: TextStyle(
                         color: AppColors.textGreyLight,
                         fontSize: 12,
@@ -148,7 +148,7 @@ class TextCard extends StatelessWidget {
           builder: (context) => AlertDialog(
             title: const Text('Retirer des favoris'),
             backgroundColor: AppColors.backgroundLight,
-            content: const Text('Êtes-vous sûr de vouloir retirer ce texte de vos favoris ?'),
+            content: const Text('Êtes-vous sûr de vouloir retirer ce Sourate de vos favoris ?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -167,7 +167,7 @@ class TextCard extends StatelessWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Vous ne suivez plus ce texte'),
+              content: Text('Vous ne suivez plus ce Sourate'),
               backgroundColor: AppColors.textGrey,
               duration: const Duration(seconds: 2),
             ),
@@ -178,7 +178,7 @@ class TextCard extends StatelessWidget {
         if(!provider.canAddMoreTexts) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Maximum 3 textes suivis autorisés'),
+              content: Text('Maximum 3 Sourates suivis autorisés'),
               backgroundColor: AppColors.noStatus,
               duration: const Duration(seconds: 2),
             ),
@@ -190,8 +190,8 @@ class TextCard extends StatelessWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(success 
-                ? 'Texte ajouté à vos favoris'
-                : 'Maximum 3 textes suivis autorisés'),
+                ? 'Sourate ajouté à vos favoris'
+                : 'Maximum 3 Sourates suivis autorisés'),
               backgroundColor: success ? AppColors.secondary : AppColors.noStatus,
               duration: const Duration(seconds: 2),
             ),
@@ -214,15 +214,16 @@ class TextCard extends StatelessWidget {
     if (progress == null) return const SizedBox.shrink();
     
     final progressPercent = progress!.currentSentence / text.totalSentences;
-    final progressText = '${progress!.currentSentence}/${text.totalSentences} segments';
-    
+    final progressText = '${progress!.currentSentence}/${text.totalSentences} Versets';
+    final isCompleted = progressPercent.round() >= 1;
+
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: AppColors.primarySubtle,
+        color: isCompleted ? AppColors.secondarySubtle : AppColors.primarySubtle,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppColors.primaryLight,
+          color: isCompleted ? AppColors.secondaryLight : AppColors.primaryLight,
           width: 1,
         ),
       ),
@@ -234,7 +235,7 @@ class TextCard extends StatelessWidget {
               Icon(
                 Icons.trending_up,
                 size: 16,
-                color: AppColors.primary,
+                color: isCompleted ? AppColors.secondary : AppColors.primary,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -242,7 +243,7 @@ class TextCard extends StatelessWidget {
                   progressText,
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.primary,
+                    color: isCompleted ? AppColors.secondary : AppColors.primary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -250,7 +251,7 @@ class TextCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: isCompleted ? AppColors.secondary : AppColors.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -264,13 +265,15 @@ class TextCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 1),
+          const SizedBox(height: 3),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
               value: progressPercent,
               backgroundColor: AppColors.backgroundLight,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isCompleted ? AppColors.secondary : AppColors.primary
+              ),
               minHeight: 2,
             ),
           ),

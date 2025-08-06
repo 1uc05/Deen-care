@@ -115,7 +115,7 @@ class _TextsListScreenState extends State<TextsListScreen> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Aucun texte disponible',
+                          'Aucun Sourate disponible',
                           style: TextStyle(
                             fontSize: 16,
                             color: AppColors.textGrey,
@@ -149,7 +149,7 @@ class _TextsListScreenState extends State<TextsListScreen> {
                 // Section textes suivis
                 if (trackedTexts.isNotEmpty) ...[
                   _buildSectionHeader(
-                    'Mes textes suivis',
+                    'Sourates à mémoriser',
                     '${trackedTexts.length}/${AppConstants.maxTrackedTexts}',
                     AppColors.primary,
                   ),
@@ -165,8 +165,8 @@ class _TextsListScreenState extends State<TextsListScreen> {
                 // Section textes disponibles
                 if (availableTexts.isNotEmpty) ...[
                   _buildSectionHeader(
-                    'Textes disponibles',
-                    '${availableTexts.length} textes',
+                    'Sourates disponibles',
+                    '${availableTexts.length} Sourates',
                     AppColors.textGrey,
                   ),
                   ...availableTexts.map((text) => TextCard(

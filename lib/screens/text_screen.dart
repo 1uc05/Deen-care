@@ -146,7 +146,7 @@ class _TextScreenState extends State<TextScreen> {
             label: Text(
               isTracked 
                   ? 'Assistant de mémorisation'
-                  : 'Ajouter aux textes suivis',
+                  : 'Ajouter aux Sourates à mémoriser',
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
               ),

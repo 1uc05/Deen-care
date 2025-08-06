@@ -46,7 +46,7 @@ class TextProgressIndicator extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '$currentSentence/$totalSentences segments',
+                '$currentSentence/$totalSentences Versets',
                 style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.textGrey,

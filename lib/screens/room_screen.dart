@@ -56,7 +56,7 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.backgroundLight,
       appBar: _buildAppBar(context),
       body: Consumer<SessionProvider>(
         builder: (context, sessionProvider, child) {

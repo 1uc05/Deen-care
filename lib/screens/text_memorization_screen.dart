@@ -372,7 +372,7 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              'Segment ${sentenceIndex + 1}',
+              'Verset ${sentenceIndex + 1}',
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.secondary,
@@ -422,7 +422,7 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              'Segment ${_currentSentenceIndex + 1} (en cours)',
+              'Verset ${_currentSentenceIndex + 1} (en cours)',
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.secondary,
