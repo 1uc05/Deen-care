@@ -71,9 +71,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                         ? 'Un créneau est déjà réservé'
                         : 'Sélectionnez un créneau pour réserver',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: hasActiveSession 
-                          ? AppColors.accent
-                          : AppColors.textGrey,
+                        color: AppColors.textGrey,
                       ),
                     ),
                     if (hasActiveSession) ...[
@@ -81,10 +79,10 @@ class _SlotsScreenState extends State<SlotsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppColors.accent,
+                          color: AppColors.backgroundLight,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: AppColors.accent,
+                            color: AppColors.textGrey,
                             width: 1,
                           ),
                         ),
@@ -94,13 +92,13 @@ class _SlotsScreenState extends State<SlotsScreen> {
                             Icon(
                               Icons.info_outline,
                               size: 16,
-                              color: AppColors.accent,
+                              color: AppColors.textGrey,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               'Vous ne pouvez pas réserver plusieurs créneaux',
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.accent,
+                                color: AppColors.textGrey,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),

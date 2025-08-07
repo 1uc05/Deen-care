@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:ffi';
+import 'package:caunvo/core/constants/app_constants.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:agora_chat_sdk/agora_chat_sdk.dart';
@@ -31,17 +33,17 @@ class SessionProvider extends ChangeNotifier {
   VoiceCallState _voiceCallState = VoiceCallState.idle;
   List<Message> _messages = [];
   bool _isLoadingMessages = false;
-    bool _isSpeakerOn = false;
+  bool _isSpeakerOn = false;
   
-
   // Streams et subscriptions
   StreamSubscription<Session?>? _activeSessionStream;
   StreamSubscription<List<Session>>? _historyStream;
   StreamSubscription<ChatMessage>? _rawMessageStream;
   StreamSubscription<VoiceConnectionState>? _voiceStateSream;
 
-  // Timer pour refresh automatique
-  Timer? _statusTimer;
+  // Timers
+  Timer? _statusTimer;        // Mise à jour auto du status de session
+  Timer? _endVoiceCallTimer;  // Délais supplémentaire pour appel en fin de session
 
   // Getters publics
   Session? get currentSession => _currentSession;
@@ -56,7 +58,6 @@ class SessionProvider extends ChangeNotifier {
   bool get isLoadingMessages => _isLoadingMessages;
   VoiceCallState get voiceCallState => _voiceCallState;
   bool get isSpeakerOn => _isSpeakerOn;
-
 
   // Logique métier - Règles de validation
   bool get canSendMessages => _connectionState == RoomConnectionState.connected &&
@@ -140,6 +141,8 @@ class SessionProvider extends ChangeNotifier {
           // Initialiser les streams
           _initializeStreams();
 
+          _startStatusTimer();
+
           // Initialise RTC si session en cours
           if (_currentSession!.isInProgress) {
             await _agoraService.initializeRtcEngine();
@@ -149,6 +152,8 @@ class SessionProvider extends ChangeNotifier {
           if(_currentSession!.effectiveStatus != _currentSession!.status) {
             await _autoUpdateSessionStatus(_currentSession!.effectiveStatus);
           }
+
+          _listenActiveSession();
         }
 
         _connectionState = RoomConnectionState.connected;
@@ -391,6 +396,7 @@ class SessionProvider extends ChangeNotifier {
 
   /// Charge la session et écoute les changements de la session active
   Future<void> _listenActiveSession() async {
+
     try {
       debugPrint('SessionProvider: Start sreaming session');
 
@@ -401,15 +407,11 @@ class SessionProvider extends ChangeNotifier {
           .listen(
         (session) async {
           if(!_isInitialized) return;
+          debugPrint('SessionProvider: Listener called');
+
           await _handleSessionChange(_currentSession, session);
 
           _currentSession = session;
-
-          // debugPrint('SessionProvider: TEST listener: ${_currentSession?.status}');
-          // if (session?.needsStatusSync() == true) {
-          //   debugPrint('SessionProvider: TEST listener2');
-          //   _autoCompleteExpiredSession(session!);
-          // }
 
           _startStatusTimer();
 
@@ -427,11 +429,12 @@ class SessionProvider extends ChangeNotifier {
   Future<void> _handleSessionChange(Session? previous, Session? current) async {
     // Session fermée/supprimée
     if (previous != null && current == null) {
+      debugPrint('SessionProvider: Call disconnect without delay');
       await _disconnectSession(previous);
       return;
     }
     
-    // Nouvelle session ou changement de statut
+    // Nouvelle session ou changement de statut automatique
     if (current != null) {
       final statusChanged = previous?.status != current.status;
       
@@ -444,7 +447,10 @@ class SessionProvider extends ChangeNotifier {
             await _agoraService.initializeRtcEngine();
             break;
           case SessionStatus.completed:
-            await _disconnectSession(current);
+            // Fin de session avec delais avant fin d'appel
+            debugPrint('SessionProvider: Call disconnect with delay');
+            if (previous == null) return;
+            await _disconnectSession(previous);
             break;
         }
       }
@@ -456,7 +462,6 @@ class SessionProvider extends ChangeNotifier {
     try {
       debugPrint('SessionProvider: Cleaning up session ${session.id}');
       debugPrint('SessionProvider: Cleaning up session ${session.agoraChannelId}');
-      _isInitialized = false;
       
       // Arrêter les streams
       await _rawMessageStream?.cancel();
@@ -464,7 +469,8 @@ class SessionProvider extends ChangeNotifier {
       
       // Quitter les canaux
       await _agoraService.leaveChatRoom(session.agoraChannelId!);
-      await _agoraService.leaveVoiceChannel();
+
+      await _endVoiceCall();
       
       // Déconnecte l'utilisateur
       await _agoraService.logoutUser();
@@ -477,6 +483,12 @@ class SessionProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('SessionProvider: Error cleaning up session: $e');
     }
+  }
+
+  // Annuler le timer de fin d'appel
+  void _cancelEndVoiceCallTimer() {
+    _endVoiceCallTimer?.cancel();
+    _endVoiceCallTimer = null;
   }
 
   /// ========== PRIVATE: AGORA STREAMS ==========
@@ -603,11 +615,9 @@ class SessionProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      
       final voiceToken = await _cloudFunctionsService.generateVoiceToken(_currentSession!.agoraChannelId!);
 
       await _agoraService.joinVoiceChannel(_currentSession!.agoraChannelId!, voiceToken);
-
     } catch (e) {
       _setError('Erreur initialisation RTC: $e');
       return;
@@ -618,6 +628,7 @@ class SessionProvider extends ChangeNotifier {
   /// Termine un appel vocal
   Future<void> _endVoiceCall() async {
     debugPrint('SessionProvider: Ending voice call');
+    _cancelEndVoiceCallTimer();
     await _agoraService.leaveVoiceChannel();
   }
 
@@ -684,15 +695,6 @@ class SessionProvider extends ChangeNotifier {
     }
   }
 
-
-
-
-
-  
-
-
-
-
   /// ========== PRIVATE: GESTION DES ETAT SESSION ==========
   /// Auto-completion des sessions expirées
   Future<void> _autoCompleteExpiredSession(Session session) async {
@@ -714,10 +716,11 @@ class SessionProvider extends ChangeNotifier {
 
   /// Timer pour refresh l'UI aux transitions
   void _startStatusTimer() {
-    debugPrint('SessionProvider: TEST statusTimer: ${_currentSession?.status}');
+    debugPrint('SessionProvider: Status changed: ${_currentSession?.status}');
     _statusTimer?.cancel();
     
     if (_currentSession == null) return;
+    if (_currentSession!.isInactive) return;
     
     final now = DateTime.now();
     Duration? nextTransition;
@@ -735,11 +738,25 @@ class SessionProvider extends ChangeNotifier {
     if (nextTransition != null && nextStatus != null) {
       final timerDuration = nextTransition + Duration(seconds: 1);
       
-      _statusTimer = Timer(timerDuration, () {
+      _statusTimer = Timer(timerDuration, () async {
         debugPrint('SessionProvider: Transition automatique vers: $nextStatus');
-        
-        _autoUpdateSessionStatus(nextStatus!);
-        
+
+        // Si la session fini pendant un appel, laisse un délai supplémentaire de 5 minues
+        if (nextStatus == SessionStatus.completed && isInVoiceCall) {
+          debugPrint('SessionProvider: Fin de la session programmé dans ${AppConstants.voiceCallDelay}min');
+          _endVoiceCallTimer = Timer(Duration(minutes: AppConstants.voiceCallDelay), () async {
+          try {
+            await _autoUpdateSessionStatus(nextStatus!);
+
+            _isInitialized = false;
+          } catch (e) {
+            debugPrint('SessionProvider: Erreur dans la fin de session différé: $e');
+          }
+        });
+        } else {
+          await _autoUpdateSessionStatus(nextStatus!);
+        }
+
         _startStatusTimer(); // Planifie la prochaine
       });
     }
@@ -748,13 +765,14 @@ class SessionProvider extends ChangeNotifier {
   /// Met à jour le statut de la session automatiquement
   Future<void> _autoUpdateSessionStatus(String newStatus) async {
     if (_currentSession == null) return;
-    
+
     try {
+      _currentSession = _currentSession!.copyWith(status: newStatus);
+
       await _sessionsService.updateSessionStatus(
         _currentSession!.id, 
         newStatus
       );
-      _currentSession = _currentSession!.copyWith(status: newStatus);
     } catch (e) {
       debugPrint('Erreur auto-update status: $e');
       // Même si ça échoue, l'UI reste cohérente avec effectiveStatus
@@ -836,6 +854,7 @@ class SessionProvider extends ChangeNotifier {
     await _historyStream?.cancel();
     await _rawMessageStream?.cancel();
     await _voiceStateSream?.cancel();
+    _cancelEndVoiceCallTimer();
     _activeSessionStream = null;
     _historyStream = null;
     _statusTimer = null;

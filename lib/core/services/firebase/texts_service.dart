@@ -14,12 +14,19 @@ class TextsService extends FirebaseService {
     try {
       final snapshot = await firestore
           .collection(_textsCollection)
-          .orderBy('id')
           .get();
           
-      return snapshot.docs
+      final texts = snapshot.docs
           .map((doc) => ArabicText.fromFirestore(doc))
           .toList();
+      
+      texts.sort((a, b) {
+        final idA = int.tryParse(a.id) ?? 0;
+        final idB = int.tryParse(b.id) ?? 0;
+        return idA.compareTo(idB);
+      });
+      
+      return texts;
     } catch (e) {
       setError('Erreur lors du chargement des textes: $e');
       return [];

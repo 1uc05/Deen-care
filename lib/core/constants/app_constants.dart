@@ -18,6 +18,8 @@ class AppConstants {
   static const String agoraAppID      = '38cea02d0d594ca1956bb1301d7e9676';
   static const String agoraAppKey     = '711376348#1582345';
 
-  // Texts
-  static const int maxTrackedTexts = 3;
+  // Logique métier
+  static const int maxTrackedTexts    = 3;
+  static const int voiceCallDelay     = 5;
+  
 }

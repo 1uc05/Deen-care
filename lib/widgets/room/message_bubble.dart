@@ -16,7 +16,6 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Couleurs selon qui parle
-    debugPrint('Message coach ? ${message.isFromCoach}');
     final isCoach = message.isFromCoach;
     final primaryColor = AppColors.primary;
     

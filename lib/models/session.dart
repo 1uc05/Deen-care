@@ -54,10 +54,12 @@ class Session {
   }
 
   // Helpers basés sur le status effectif
+  bool get isUndefined => effectiveStatus == SessionStatus.undefined;
   bool get isScheduled => effectiveStatus == SessionStatus.scheduled;
   bool get isInProgress => effectiveStatus == SessionStatus.inProgress;
   bool get isCompleted => effectiveStatus == SessionStatus.completed;
   bool get isActive => status == SessionStatus.scheduled || status == SessionStatus.inProgress;
+  bool get isInactive => status == SessionStatus.undefined || status == SessionStatus.completed;
 
   // Helpers temporels
   // Duration get duration => endTime.difference(startTime);
