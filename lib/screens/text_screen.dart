@@ -63,7 +63,7 @@ class _TextScreenState extends State<TextScreen> {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              'Texte ${widget.text.id}',
+              'Sourate ${widget.text.id}',
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -229,7 +229,7 @@ class _TextScreenState extends State<TextScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Texte "${widget.text.titleFrench}" ajouté aux textes suivis',
+                      'Sourate "${widget.text.titleFrench}" ajoutée aux Sourate suivis',
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -258,7 +258,7 @@ class _TextScreenState extends State<TextScreen> {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Maximum 3 textes suivis. Supprimez un texte pour en ajouter un nouveau.',
+                    'Maximum 3 Sourates suivis. Supprimez une Sourate pour en ajouter une nouvelle.',
                     style: TextStyle(fontWeight: FontWeight.w500),
                   ),
                 ),

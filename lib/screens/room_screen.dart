@@ -110,7 +110,7 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Coach Session',
+                'Mentor Coranique',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -438,7 +438,7 @@ class _NoSessionView extends StatelessWidget {
           ),
           SizedBox(height: 16),
           Text(
-            'Aucune session active',
+            'Aucun mentor actif',
             style: TextStyle(
               fontSize: 18,
               color: AppColors.textGrey,
@@ -447,7 +447,7 @@ class _NoSessionView extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            'Réservez un créneau pour accéder au salon',
+            'Réservez une session de mentorat pour accèder au salon',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.textGrey,

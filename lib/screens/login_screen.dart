@@ -29,7 +29,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+    
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -52,139 +55,160 @@ class _LoginScreenState extends State<LoginScreen> {
                 }
               });
 
-              return Center(
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Logo/Titre
-                      Image.asset(
-                        'lib/assets/images/caunvo_logo.png',
-                        width: 150,
-                        fit: BoxFit.contain, // Maintient les proportions
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Jouez en apprenant',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.textGrey,
-                        ),
-                      ),
-                      const SizedBox(height: 48),
-
-                      // Formulaire
-                      Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            // Nom (seulement en mode inscription)
-                            if (_isSignUpMode) ...[
-                              TextFormField(
-                                controller: _nameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Nom complet',
-                                  prefixIcon: Icon(Icons.person),
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: (value) {
-                                  if (_isSignUpMode && (value == null || value.trim().isEmpty)) {
-                                    return 'Le nom est requis';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-
-                            // Email
-                            TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
-                                labelText: 'Email',
-                                prefixIcon: Icon(Icons.email),
-                                border: OutlineInputBorder(),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'L\'email est requis';
-                                }
-                                if (!value.contains('@')) {
-                                  return 'Email invalide';
-                                }
-                                return null;
-                              },
+              return Column( // ⚡ Column simple - pas de scroll
+                children: [
+                  // Image adaptative - S'adapte intelligemment
+                  Expanded(
+                    flex: _getImageFlex(keyboardVisible), // ⚡ Logique centralisée
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible( // ⚡ Flexible au lieu d'Expanded
+                            child: Image.asset(
+                              'lib/assets/images/img_app_mentor.png',
+                              width: MediaQuery.of(context).size.width * 0.8,
+                              fit: BoxFit.contain,
                             ),
-                            const SizedBox(height: 16),
-
-                            // Mot de passe
-                            TextFormField(
-                              controller: _passwordController,
-                              obscureText: _obscurePassword,
-                              decoration: InputDecoration(
-                                labelText: 'Mot de passe',
-                                prefixIcon: const Icon(Icons.lock),
-                                suffixIcon: IconButton(
-                                  icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                ),
-                                border: const OutlineInputBorder(),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Le mot de passe est requis';
-                                }
-                                if (_isSignUpMode && value.length < 6) {
-                                  return 'Le mot de passe doit contenir au moins 6 caractères';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Bouton principal
-                            SizedBox(
-                              width: double.infinity,
-                              height: 50,
-                              child: ElevatedButton(
-                                onPressed: authProvider.isLoading ? null : _handleSubmit,
-                                style: ElevatedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                child: authProvider.isLoading
-                                    ? const CircularProgressIndicator(color: Colors.white)
-                                    : Text(
-                                        _isSignUpMode ? 'S\'inscrire' : 'Se connecter',
-                                        style: const TextStyle(fontSize: 16),
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Bouton de changement de mode
-                            TextButton(
-                              onPressed: authProvider.isLoading ? null : _toggleMode,
-                              child: Text(
-                                _isSignUpMode 
-                                    ? 'Déjà un compte ? Se connecter'
-                                    : 'Pas encore de compte ? S\'inscrire',
+                          ),
+                          if (!keyboardVisible) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'Ton allié pour Mémoriser le Coran',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: AppColors.textGrey,
                               ),
                             ),
                           ],
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+
+                  // Espacement adaptatif
+                  if (!keyboardVisible)
+                    const SizedBox(height: 24),
+
+                  // Formulaire - Taille fixe
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Nom (seulement en mode inscription)
+                        if (_isSignUpMode) ...[
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Nom complet',
+                              prefixIcon: Icon(Icons.person),
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              if (_isSignUpMode && (value == null || value.trim().isEmpty)) {
+                                return 'Le nom est requis';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Email
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.email),
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'L\'email est requis';
+                            }
+                            if (!value.contains('@')) {
+                              return 'Email invalide';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Mot de passe
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Mot de passe',
+                            prefixIcon: const Icon(Icons.lock),
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Le mot de passe est requis';
+                            }
+                            if (_isSignUpMode && value.length < 6) {
+                              return 'Le mot de passe doit contenir au moins 6 caractères';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Bouton principal
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: authProvider.isLoading ? null : _handleSubmit,
+                            style: ElevatedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: authProvider.isLoading
+                                ? const CircularProgressIndicator(color: Colors.white)
+                                : Text(
+                                    _isSignUpMode ? 'S\'inscrire' : 'Se connecter',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Bouton de changement de mode
+                        TextButton(
+                          onPressed: authProvider.isLoading ? null : _toggleMode,
+                          child: Text(
+                            _isSignUpMode 
+                                ? 'Déjà un compte ? Se connecter'
+                                : 'Pas encore de compte ? S\'inscrire',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               );
             },
           ),
         ),
       ),
     );
+  }
+
+  // ⚡ Logique centralisée pour le flex de l'image
+  int _getImageFlex(bool keyboardVisible) {
+    if (keyboardVisible) {
+      return _isSignUpMode ? 1 : 2; // Plus petit avec clavier
+    }
+    return _isSignUpMode ? 3 : 4; // Taille normale
   }
 
   void _handleSubmit() {

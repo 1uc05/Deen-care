@@ -121,7 +121,7 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Limite de 3 textes atteinte'),
+                content: Text('Limite de 3 Sourate atteinte'),
                 backgroundColor: AppColors.noStatus,
               ),
             );
@@ -484,7 +484,7 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Vous avez terminé la mémorisation de ce texte.',
+              'Vous avez terminé la mémorisation de cette Sourate.',
               style: TextStyle(
                 fontSize: 16,
                 color: AppColors.textGrey,

@@ -64,54 +64,72 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 👋 Header personnalisé
+  // Header personnalisé
   Widget _buildWelcomeHeader(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         final user = authProvider.user;
-        final hour = DateTime.now().hour;
-        final greeting = hour < 12 
-            ? 'Bonjour' 
-            : hour < 18 
-              ? 'Bon après-midi' 
-              : 'Bonsoir';
 
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [AppColors.primary, AppColors.primaryMedium],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        return Column(
+          children: [
+            // Logo en haut, séparé
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 60,
+                  width: 160,
+                  child: Image.asset(
+                    'lib/assets/images/Deen-care_no-background.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
             ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$greeting ${user?.name ?? 'Utilisateur'} ! 👋',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+            
+            const SizedBox(height: 16),
+            
+            // Card gradient pour le texte d'accueil
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primary, AppColors.primaryMedium],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Continuons votre apprentissage de l\'arabe',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white70,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Salaam ${user?.name ?? 'Utilisateur'} ! 👋',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Continuons votre mémorisation du Coran',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
   }
+
+
 
   // Section Mémorisation
   Widget _buildMemorizationSection(BuildContext context) {
@@ -196,7 +214,7 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 8),
           
           const Text(
-            'Choisissez vos premiers textes à apprendre par cœur',
+            'Choisissez vos premières Sourates à apprendre par coeur',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.textGrey,
@@ -209,7 +227,7 @@ class HomeScreen extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () => context.read<NavigationProvider>().goToTextes(),
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Choisir un texte'),
+            label: const Text('Choisir une Sourate'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.secondary,
               foregroundColor: Colors.white,
@@ -264,7 +282,7 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '📅 Votre session',
+              '📅 Votre mentorat Coranique',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -323,7 +341,7 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 8),
           
           const Text(
-            'Planifiez un créneau avec un coach pour pratiquer',
+            'Planifiez un créneau avec un mentor pour élaborer un plan de mémorisation et de récitation',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.textGrey,
@@ -381,39 +399,89 @@ class HomeScreen extends StatelessWidget {
         
         const SizedBox(height: 12),
         
-        Row(
-          children: [
-            Expanded(
-              child: _buildQuickActionCard(
-                context,
-                icon: Icons.library_books,
-                title: 'Tous les Sourate',
-                subtitle: 'Parcourir la bibliothèque',
-                color: AppColors.secondary,
-                onTap: () => context.read<NavigationProvider>().goToTextes(),
+        IntrinsicHeight(
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildQuickActionCard(
+                  context,
+                  icon: Icons.library_books,
+                  title: 'Toutes les Sourates',
+                  subtitle: 'Parcourir la bibliothèque',
+                  color: AppColors.secondary,
+                  onTap: () => context.read<NavigationProvider>().goToTextes(),
+                ),
               ),
-            ),
-            
-            const SizedBox(width: 12),
-            
-            Expanded(
-              child: _buildQuickActionCard(
-                context,
-                icon: Icons.history,
-                title: 'Historique',
-                subtitle: 'Vos sessions passées',
-                color: AppColors.primary,
-                onTap: () {
-                  // TODO: Navigation vers historique
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Historique - À implémenter')),
-                  );
-                },
+              
+              const SizedBox(width: 12),
+              
+              Expanded(
+                child: _buildLastSessionCard(context),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
+    );
+  }
+
+  // Card dernière session
+  Widget _buildLastSessionCard(BuildContext context) {
+    return Consumer<SessionProvider>(
+      builder: (context, sessionProvider, child) {
+        // final lastSession = sessionProvider.getLastCompletedSession();
+        final lastSession = null;
+        
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.backgroundLight, width: 1.5),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryLight,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.history,
+                  color: AppColors.secondary,
+                  size: 20,
+                ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              const Text(
+                'Dernière session',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textDark,
+                ),
+              ),
+              
+              const SizedBox(height: 4),
+              
+              Text(
+                lastSession != null 
+                  ? '${_formatSessionDate(lastSession.startedAt)} ✅'
+                  : 'Aucune session terminée',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textGrey,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -437,6 +505,7 @@ class HomeScreen extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(8),
@@ -475,6 +544,24 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Helper pour formater la date
+  String _formatSessionDate(DateTime? date) {
+    if (date == null) return '';
+    
+    final now = DateTime.now();
+    final difference = now.difference(date).inDays;
+    
+    if (difference == 0) {
+      return 'Aujourd\'hui';
+    } else if (difference == 1) {
+      return 'Hier';
+    } else if (difference < 7) {
+      return 'Il y a $difference jours';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
 
   // Annulation réservation

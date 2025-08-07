@@ -165,7 +165,7 @@ class _TextsListScreenState extends State<TextsListScreen> {
                 // Section textes disponibles
                 if (availableTexts.isNotEmpty) ...[
                   _buildSectionHeader(
-                    'Sourates disponibles',
+                    'Autres sourates',
                     '${availableTexts.length} Sourates',
                     AppColors.textGrey,
                   ),

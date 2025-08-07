@@ -94,7 +94,7 @@ class _MainScreenState extends State<MainScreen> {
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
               BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Mémorisation'), //menu_book, school, auto_stories
-              BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Réservation'),
+              BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Mentorat'),
               BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Salon'),
             ],
           ),

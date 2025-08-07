@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // === COULEURS PRINCIPALES ===
+  // Couleur qui correspondrait mieux 
+  // primary : Color(0xFF228B22)
+  // secondary : Color(0xFF8B4513)
   static const Color primary          = Color(0xFF2196F3);  // Bleu principal
   static const Color secondary        = Color(0xFF4CAF50);  // Vert (succès/disponible)  
   static const Color accent           = Color(0xFFFF9800);  // Orange (warning/en cours)
