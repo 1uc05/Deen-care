@@ -372,7 +372,7 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              'Verset ${sentenceIndex + 1}',
+              sentenceIndex == 0 ? 'Basmala' : 'Verset $sentenceIndex}',
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.secondary,
@@ -422,7 +422,8 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              'Verset ${_currentSentenceIndex + 1} (en cours)',
+
+              _currentSentenceIndex == 0 ? 'Basmala (en cours)' : 'Verset $_currentSentenceIndex  (en cours)',
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.secondary,
