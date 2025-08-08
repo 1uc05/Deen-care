@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:ffi';
-import 'package:caunvo/core/constants/app_constants.dart';
+import 'package:deen_care/core/constants/app_constants.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:agora_chat_sdk/agora_chat_sdk.dart';

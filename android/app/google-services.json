@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:630412207790:android:1fa292a34bb17034092f3f",
+        "mobilesdk_app_id": "1:630412207790:android:a5f0d4bc54839061092f3f",
         "android_client_info": {
-          "package_name": "com.example.caunvo"
+          "package_name": "care.deen"
         }
       },
       "oauth_client": [],

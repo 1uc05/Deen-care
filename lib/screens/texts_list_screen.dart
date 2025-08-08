@@ -1,6 +1,6 @@
-import 'package:caunvo/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:deen_care/core/constants/app_constants.dart';
 import '../providers/texts_provider.dart';
 import '../widgets/texts/text_card.dart';
 import '../core/constants/app_colors.dart';

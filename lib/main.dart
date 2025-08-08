@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; 
+import 'package:intl/date_symbol_data_local.dart';
 import 'app.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/texts_provider.dart';
 import 'providers/calendar_provider.dart';
 import 'providers/session_provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart'; 
-import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'core/utils/data_tools.dart';
 
@@ -49,7 +49,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => CalendarProvider()),
         ChangeNotifierProvider(create: (_) => SessionProvider()),
       ],
-      child: const CaunvoApp(),
+      child: const DeenCareApp(),
     ),
   );
 }

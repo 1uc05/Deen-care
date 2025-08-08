@@ -1,4 +1,4 @@
-package fr.protelec.caunvo
+package care.deen
 
 import io.flutter.embedding.android.FlutterActivity
 

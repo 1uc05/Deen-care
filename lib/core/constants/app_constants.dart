@@ -2,7 +2,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConstants {
   // App Configuration
-  static const String appName = 'Caunvo';
+  static const String appName = 'Care.deen';
   static const String appVersion = '1.0.0';
 
   // UX

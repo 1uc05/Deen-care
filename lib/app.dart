@@ -5,8 +5,8 @@ import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 
-class CaunvoApp extends StatelessWidget {
-  const CaunvoApp({super.key});
+class DeenCareApp extends StatelessWidget {
+  const DeenCareApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +46,7 @@ class CaunvoApp extends StatelessWidget {
     );
 
     return MaterialApp.router(
-      title: 'Caunvo',
+      title: 'Deen.care',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,

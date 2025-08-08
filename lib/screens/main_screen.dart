@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:caunvo/screens/home_screen.dart';
-import 'package:caunvo/screens/texts_list_screen.dart';
-import 'package:caunvo/screens/calendar_screen.dart';
-import 'package:caunvo/screens/room_screen.dart';
-import 'package:caunvo/core/constants/app_colors.dart';
-import 'package:caunvo/providers/navigation_provider.dart';
-import 'package:caunvo/providers/auth_provider.dart';
-import 'package:caunvo/providers/session_provider.dart';
-import 'package:caunvo/providers/calendar_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:deen_care/screens/home_screen.dart';
+import 'package:deen_care/screens/texts_list_screen.dart';
+import 'package:deen_care/screens/calendar_screen.dart';
+import 'package:deen_care/screens/room_screen.dart';
+import 'package:deen_care/core/constants/app_colors.dart';
+import 'package:deen_care/providers/navigation_provider.dart';
+import 'package:deen_care/providers/auth_provider.dart';
+import 'package:deen_care/providers/session_provider.dart';
+import 'package:deen_care/providers/calendar_provider.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
