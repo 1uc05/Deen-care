@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDJgywuYNS8pFx3TWQz9j1G7XFEL46QZLc',
-    appId: '1:630412207790:android:1fa292a34bb17034092f3f',
+    appId: '1:630412207790:android:a5f0d4bc54839061092f3f',
     messagingSenderId: '630412207790',
     projectId: 'caunvo',
     storageBucket: 'caunvo.firebasestorage.app',
@@ -60,29 +60,30 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyADWu_833ZJKMR0zWwmwGr-gSUed9SPR3k',
-    appId: '1:630412207790:ios:144d6be0f6ee9b28092f3f',
+    appId: '1:630412207790:ios:f89541957f0e01ce092f3f',
     messagingSenderId: '630412207790',
     projectId: 'caunvo',
     storageBucket: 'caunvo.firebasestorage.app',
-    iosBundleId: 'com.example.caunvo',
+    iosBundleId: 'care.deen',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyADWu_833ZJKMR0zWwmwGr-gSUed9SPR3k',
-    appId: '1:630412207790:ios:144d6be0f6ee9b28092f3f',
+    appId: '1:630412207790:ios:20010339e6997c9e092f3f',
     messagingSenderId: '630412207790',
     projectId: 'caunvo',
     storageBucket: 'caunvo.firebasestorage.app',
-    iosBundleId: 'com.example.caunvo',
+    iosBundleId: 'fr.protelec.caunvo',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyAeKuNKe15eOJrPvpc9lZawP98ajj-DV4w',
-    appId: '1:630412207790:web:95a422ed18feeb0f092f3f',
+    appId: '1:630412207790:web:7cfaa33247b870b2092f3f',
     messagingSenderId: '630412207790',
     projectId: 'caunvo',
     authDomain: 'caunvo.firebaseapp.com',
     storageBucket: 'caunvo.firebasestorage.app',
-    measurementId: 'G-QFFBW37YGW',
+    measurementId: 'G-GVYQT9H334',
   );
+
 }

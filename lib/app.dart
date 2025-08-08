@@ -26,11 +26,11 @@ class DeenCareApp extends StatelessWidget {
         if (isLoggedIn && currentRoute == '/login') {
           return '/main';
         }
-        
+
         if (!isLoggedIn && currentRoute != '/login') {
           return '/login';
         }
-        
+
         return null;
       },
       routes: [

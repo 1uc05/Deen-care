@@ -1,7 +1,7 @@
-name: caunvo
-description: "Apprendre l'anglais en jouant à un jeu avec un coach"
+name: deen_care
+description: "Ton allié pour Mémoriser le Coran"
 publish_to: 'none'
-version: 0.1.0
+version: 1.0.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -46,6 +46,12 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "lib/assets/icon/Deen-care_no-bckgnd.png"
 
 flutter:
   uses-material-design: true
