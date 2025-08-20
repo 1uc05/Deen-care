@@ -55,16 +55,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 }
               });
 
-              return Column( // ⚡ Column simple - pas de scroll
+              return Column(
                 children: [
                   // Image adaptative - S'adapte intelligemment
                   Expanded(
-                    flex: _getImageFlex(keyboardVisible), // ⚡ Logique centralisée
+                    flex: _getImageFlex(keyboardVisible),
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Flexible( // ⚡ Flexible au lieu d'Expanded
+                          Flexible(
                             child: Image.asset(
                               'lib/assets/images/img_app_mentor.png',
                               width: MediaQuery.of(context).size.width * 0.8,
@@ -74,10 +74,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           if (!keyboardVisible) ...[
                             const SizedBox(height: 8),
                             Text(
-                              'Ton allié pour Mémoriser le Coran',
+                              'Ton allié pour mémoriser et réciter le Coran',
                               textAlign: TextAlign.center,
                               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                 color: AppColors.textGrey,
+                                fontSize: 22,
                               ),
                             ),
                           ],
