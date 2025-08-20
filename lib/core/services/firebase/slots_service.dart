@@ -26,11 +26,20 @@ class SlotsService extends FirebaseService {
         query = query.where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
       }
 
-      // Filtrer seulement les créneaux disponibles et futurs
+      final now = DateTime.now();
+      final tomorrow = DateTime(now.year, now.month, now.day + 1);
+
+      // Filtrer seulement les créneaux disponibles et à partir de demain
       query = query
           .where('status', isEqualTo: 'available')
-          .where('startTime', isGreaterThan: Timestamp.now())
+          .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(tomorrow))
           .orderBy('startTime');
+
+      // // Filtrer seulement les créneaux disponibles et futurs
+      // query = query
+      //     .where('status', isEqualTo: 'available')
+      //     .where('startTime', isGreaterThan: Timestamp.now())
+      //     .orderBy('startTime');
 
       return query.snapshots().map((snapshot) {
         return snapshot.docs.map((doc) {
