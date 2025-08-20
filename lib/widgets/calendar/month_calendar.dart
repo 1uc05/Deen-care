@@ -29,7 +29,7 @@ class _MonthCalendarState extends State<MonthCalendar> {
           const SizedBox(height: 20),
           _buildWeekdayHeaders(),
           const SizedBox(height: 10),
-          Expanded(child: _buildCalendarGrid()),
+          _buildCalendarGrid(), // ✅ SUPPRESSION d'Expanded
         ],
       ),
     );
@@ -84,13 +84,15 @@ class _MonthCalendarState extends State<MonthCalendar> {
 
   Widget _buildCalendarGrid() {
     final calendarDays = AppDateUtils.getCalendarDays(_currentMonth);
-    
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        childAspectRatio: 1,
+        childAspectRatio: 1.1, // ✅ ASPECT RATIO légèrement plus large pour plus d'espace vertical
+        mainAxisSpacing: 4,    // ✅ ESPACEMENT vertical entre les cellules
+        crossAxisSpacing: 4,   // ✅ ESPACEMENT horizontal entre les cellules
       ),
       itemCount: calendarDays.length,
       itemBuilder: (context, index) {
@@ -110,7 +112,7 @@ class _MonthCalendarState extends State<MonthCalendar> {
     return GestureDetector(
       onTap: isSelectable ? () => widget.onDaySelected(day) : null,
       child: Container(
-        margin: const EdgeInsets.all(2),
+        margin: const EdgeInsets.all(1), // ✅ MARGE réduite pour optimiser l'espace
         decoration: BoxDecoration(
           color: _getDayBackgroundColor(isToday, hasSlots, isCurrentMonth, isPast),
           borderRadius: BorderRadius.circular(8),

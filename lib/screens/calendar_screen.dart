@@ -29,7 +29,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
   }
-  
+
   Future<void> _cancelReservation() async {
     // Confirmer l'annulation
     final confirmed = await showDialog<bool>(
@@ -192,39 +192,47 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           },
                         ),
                         const SizedBox(height: 20),
-                        
-                        // Calendrier plein écran
-                        SizedBox(
-                          height: 350,
-                          child: MonthCalendar(
-                            availableDays: calendarProvider.getAvailableDays(),
-                            onDaySelected: _onDaySelected,
-                          ),
-                        ),
-                        
-                        // Légende en bas
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.secondarySubtle,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildLegendItem(
-                                context,
-                                color: AppColors.primaryMedium,
-                                label: 'Disponible',
+
+                        // Calendrier + Légende dans une Column
+                        Column(
+                          children: [
+                            // Calendrier avec taille fixe
+                            SizedBox(
+                              height: 350,
+                              child: MonthCalendar(
+                                availableDays: calendarProvider.getAvailableDays(),
+                                onDaySelected: _onDaySelected,
                               ),
-                              _buildLegendItem(
-                                context,
-                                color: Colors.grey.shade300,
-                                label: 'Indisponible',
+                            ),
+                            
+                            // Petit espace entre calendrier et légende
+                            const SizedBox(height: 12),
+
+                            // Légende collée en bas du calendrier
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.secondarySubtle,
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                            ],
-                          ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _buildLegendItem(
+                                    context,
+                                    color: AppColors.primaryMedium,
+                                    label: 'Disponible',
+                                  ),
+                                  _buildLegendItem(
+                                    context,
+                                    color: Colors.grey.shade300,
+                                    label: 'Indisponible',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
