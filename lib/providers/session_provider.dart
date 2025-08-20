@@ -462,26 +462,33 @@ class SessionProvider extends ChangeNotifier {
     try {
       debugPrint('SessionProvider: Cleaning up session ${session.id}');
       debugPrint('SessionProvider: Cleaning up session ${session.agoraChannelId}');
-      
+
       // Arrêter les streams
       await _rawMessageStream?.cancel();
       await _voiceStateSream?.cancel();
-      
-      // Quitter les canaux
-      await _agoraService.leaveChatRoom(session.agoraChannelId!);
 
-      await _endVoiceCall();
-      
-      // Déconnecte l'utilisateur
+      // Nettoyage complet via AgoraService
+      await _agoraService.cleanupSession(
+        session.agoraChannelId,  // Group ID
+        session.agoraChannelId,  // Voice channel ID (même ID)
+      );
+
+      // Annuler le timer de fin d'appel
+      _cancelEndVoiceCallTimer();
+
+      // Déconnecte l'utilisateur Agora
       await _agoraService.logoutUser();
-      
-      // Réinitialiser l'état
+
+      // Réinitialiser l'état local
       _messages.clear();
       _voiceCallState = VoiceCallState.idle;
       _connectionState = RoomConnectionState.disconnected;
-      
+
+      debugPrint('SessionProvider: Session cleanup completed');
+
     } catch (e) {
       debugPrint('SessionProvider: Error cleaning up session: $e');
+      // Continue l'exécution même en cas d'erreur
     }
   }
 

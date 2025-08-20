@@ -371,6 +371,70 @@ class AgoraService {
     debugPrint('Haut-parleur: ${enabled ? 'ON' : 'OFF'}');
   }
 
+  /// Quitte un groupe de chat (pour les membres)
+  Future<void> leaveChatGroup(String groupId) async {
+    if (!_isChatInitialized) return;
+
+    try {
+      await _chatClient!.groupManager.leaveGroup(groupId);
+      debugPrint('AgoraService: Left chat group: $groupId');
+
+    } catch (e) {
+      debugPrint('AgoraService: Failed to leave group $groupId: $e');
+      // Ne pas faire throw - on veut continuer même si ça échoue
+    }
+  }
+
+  /// Supprime complètement un groupe de chat (pour le créateur/owner)
+  Future<void> destroyChatGroup(String groupId) async {
+    if (!_isChatInitialized) return;
+
+    try {
+      await _chatClient!.groupManager.destroyGroup(groupId);
+      debugPrint('AgoraService: Destroyed chat group: $groupId');
+
+    } on ChatError catch (e) {
+      if (e.code == 605) {
+        // Groupe n'existe pas ou déjà supprimé
+        debugPrint('AgoraService: Group $groupId already destroyed or not found');
+        return;
+      }
+
+      debugPrint('AgoraService: Failed to destroy group $groupId: ${e.code} - ${e.description}');
+      // Ne pas faire throw - on veut continuer même si ça échoue
+    }
+  }
+
+  /// Nettoyage complet d'une session (groupe + vocal)
+  Future<void> cleanupSession(String? groupId, String? voiceChannelId) async {
+    debugPrint('AgoraService: Starting session cleanup...');
+
+    try {
+      // 1. Quitter le canal vocal en premier
+      if (voiceChannelId != null && _voiceState != VoiceConnectionState.disconnected) {
+        await leaveVoiceChannel();
+        debugPrint('AgoraService: Voice channel cleaned');
+      }
+
+      // 2. Quitter et détruire le groupe de chat
+      if (groupId != null) {
+        // D'abord quitter le groupe
+        await leaveChatGroup(groupId);
+
+        // Puis essayer de le détruire (seulement si on est le créateur)
+        await destroyChatGroup(groupId);
+
+        debugPrint('AgoraService: Chat group cleaned');
+      }
+
+      debugPrint('AgoraService: Session cleanup completed successfully');
+
+    } catch (e) {
+      debugPrint('AgoraService: Session cleanup error: $e');
+      // Ne pas faire throw - le nettoyage est "best effort"
+    }
+  }
+
   /// Nettoyage complet du service
   Future<void> dispose() async {
     try {
