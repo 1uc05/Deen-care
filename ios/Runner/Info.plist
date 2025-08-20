@@ -45,23 +45,19 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-
-	<!-- AGORA VOICE - Microphone permission -->
-    <key>NSMicrophoneUsageDescription</key>
-    <string>Cette app a besoin du microphone pour les appels vocaux avec les coachs</string>
-    
-    <!-- BACKGROUND AUDIO (pour continuer les appels en arrière-plan) -->
-    <key>UIBackgroundModes</key>
-    <array>
-        <string>audio</string>
-        <string>voip</string>
-    </array>
-    
-    <!-- APP TRANSPORT SECURITY (pour Firebase) -->
-    <key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSAllowsArbitraryLoads</key>
-        <false/>
-    </dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Cette app a besoin du microphone pour les appels vocaux avec les coachs</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>voip</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Cette app a besoin d’accéder à la caméra pour les appels vidéo avec les coachs</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+	</dict>
 </dict>
 </plist>

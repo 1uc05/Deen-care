@@ -51,7 +51,7 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "lib/assets/icon/Deen-care_no-bckgnd.png"
+  image_path: "lib/assets/icon/Deen-care_app-logo.png"
 
 flutter:
   uses-material-design: true
