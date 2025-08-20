@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../widgets/calendar/month_calendar.dart';
+import '../core/constants/app_colors.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/calendar_provider.dart';
 import '../providers/session_provider.dart';
-import '../core/constants/app_colors.dart';
-import 'slots_screen.dart';
+import '../widgets/calendar/month_calendar.dart';
 import '../widgets/calendar/reservation_card.dart';
+import '../widgets/calendar/gender_mentor_selector.dart';
+import 'slots_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -16,13 +17,14 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
+  MentorGender _selectedGender = MentorGender.none;
+
   @override
   void initState() {
     super.initState();
   }
 
   void _onDaySelected(DateTime selectedDay) {
-    // Navigation vers la liste des créneaux du jour sélectionné
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => SlotsScreen(selectedDate: selectedDay),
@@ -30,8 +32,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+  void _onGenderChanged(MentorGender gender) {
+    setState(() {
+      _selectedGender = gender;
+    });
+    // TODO: Intégrer avec la logique métier
+  }
+
   Future<void> _cancelReservation() async {
-    // Confirmer l'annulation
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -143,12 +151,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Instructions pour l'utilisateur
                         Consumer<SessionProvider>(
                           builder: (context, provider, child) {
-
                             if (provider.hasActiveSession()) {
-                              // Afficher la carte de réservation
                               return ReservationCard(
                                 startTime: provider.currentSessionStartTime!,
                                 endTime: provider.currentSessionEndTime!,
@@ -157,7 +162,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 isLoading: provider.isLoading,
                               );
                             } else {
-                              // Afficher le message instructions par défaut
                               return Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(16),
@@ -191,12 +195,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             }
                           },
                         ),
+                        
+                        // Selecteur de genre - Affiché seulement si pas de réservation active
+                        Consumer<SessionProvider>(
+                          builder: (context, sessionProvider, child) {
+                            if (!sessionProvider.hasActiveSession()) {
+                              return Column(
+                                children: [
+                                  const SizedBox(height: 20),
+                                  GenderMentorSelector(
+                                    selectedGender: _selectedGender,
+                                    onGenderChanged: _onGenderChanged,
+                                  ),
+                                ],
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                        
                         const SizedBox(height: 20),
 
-                        // Calendrier + Légende dans une Column
                         Column(
                           children: [
-                            // Calendrier avec taille fixe
                             SizedBox(
                               height: 350,
                               child: MonthCalendar(
@@ -204,11 +225,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 onDaySelected: _onDaySelected,
                               ),
                             ),
-                            
-                            // Petit espace entre calendrier et légende
-                            const SizedBox(height: 12),
 
-                            // Légende collée en bas du calendrier
+                            const SizedBox(height: 12),
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(12),
