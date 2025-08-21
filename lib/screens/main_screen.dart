@@ -49,7 +49,7 @@ class _MainScreenState extends State<MainScreen> {
         debugPrint('Initialisation des providers pour user: ${authProvider.user?.name}');
 
         // Initialisation des providers  et démarrage des streams
-        await sessionProvider.initialize(userId);
+        await sessionProvider.initialize(userId, authProvider.user!.name);
         await calendarProvider.initialize(userId);
 
         // Chargement des créneaux disponibles

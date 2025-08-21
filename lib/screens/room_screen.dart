@@ -270,7 +270,8 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
         final currentUserId = context.read<AuthProvider>().currentUserId;
         return MessageBubble(
           message: message,
-          isFromCurrentUser: message.senderId.toLowerCase() == currentUserId?.toLowerCase(),
+          isFromCurrentUser: !message.isFromCoach,
+          // isFromCurrentUser: message.senderId.toLowerCase() == currentUserId?.toLowerCase(),
         );
       },
     );

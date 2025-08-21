@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/calendar_provider.dart';
 import '../providers/session_provider.dart';
+import '../providers/navigation_provider.dart';
 import '../models/slot.dart';
 import '../core/constants/app_colors.dart';
 import '../widgets/calendar/booking_popup.dart';
@@ -325,6 +326,9 @@ class _SlotsScreenState extends State<SlotsScreen> {
 
         // Retour à la page home (index 0)
         Navigator.of(context).popUntil((route) => route.isFirst);
+
+        final navigationProvider = context.read<NavigationProvider>();
+        navigationProvider.goToRoom();
       }
     } catch (e) {
       if (mounted) {

@@ -5,6 +5,7 @@ class AppDateUtils {
   static final DateFormat _dayFormat = DateFormat('d');
   static final DateFormat _monthYearFormat = DateFormat('MMMM yyyy', 'fr_FR');
   static final DateFormat _timeFormat = DateFormat('HH:mm');
+  static final DateFormat _dateFormat = DateFormat('EEEE dd MMMM', 'fr_FR');
   static final DateFormat _fullDateFormat = DateFormat('EEEE dd MMMM yyyy', 'fr_FR');
 
   /// Formate un jour (ex: "15")
@@ -15,6 +16,9 @@ class AppDateUtils {
 
   /// Formate une heure (ex: "14:30")
   static String formatTime(DateTime date) => _timeFormat.format(date);
+
+  /// Formate une date (ex: "Lundi 15 janvier")
+  static String formatDate(DateTime date) => _dateFormat.format(date);
 
   /// Formate une date complète (ex: "Lundi 15 janvier 2024")
   static String formatFullDate(DateTime date) => _fullDateFormat.format(date);

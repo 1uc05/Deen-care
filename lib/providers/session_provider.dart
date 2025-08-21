@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:agora_chat_sdk/agora_chat_sdk.dart';
 import '../models/session.dart';
 import '../models/slot.dart';
+import '../core/utils/date_utils.dart';
 import '../core/services/firebase/sessions_service.dart';
 import '../core/services/firebase/slots_service.dart';
 import '../core/services/firebase/users_service.dart';
@@ -23,6 +24,7 @@ class SessionProvider extends ChangeNotifier {
 
   // État interne
   String? _currentUserId;
+  String? _currentUserName;
   Session? _currentSession;
   List<Session> _userSessionHistory = [];
   bool _isLoading = false;
@@ -90,10 +92,11 @@ class SessionProvider extends ChangeNotifier {
 
 
   /// Initialise le provider
-  Future<void> initialize(String userId) async {
+  Future<void> initialize(String userId, String userName) async {
     if(_isInitialized) return;
     
       _currentUserId = userId;
+      _currentUserName = userName;
 
     _clearError();
 
@@ -209,10 +212,15 @@ class SessionProvider extends ChangeNotifier {
       _initializeStreams();
 
       // Réserver le créneau
-      await _slotsService.bookSlot(slot.id!, session!.id);
+      await _slotsService.bookSlot(slot.id!, session.id);
 
       // Écouter les changements de la nouvelle session
       _listenActiveSession();
+
+      // Envoie du premier message
+      await _sendFirstMessage(slot);
+
+
     } catch (e) {
       _rollbackBooking(session?.id, slot.id);
       _setError('Réservation échouée: $e');
@@ -346,7 +354,6 @@ class SessionProvider extends ChangeNotifier {
       return false;
     }
   }
-
 
   /// ========== PRIVATE FUNCTION ==========
   /// ========== GENERIQUE ==========
@@ -647,6 +654,51 @@ class SessionProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _setError('Erreur changement haut-parleur: $e');
+    }
+  }
+
+  /// ========== PRIVATE: GESTION DES MESSAGES ==========
+  /// Envoi du premier message
+  Future<void> _sendFirstMessage(Slot slot) async {    
+    if (_currentUserId == null || currentRoomId == null) {
+      _setError('Session non initialisée');
+    }
+
+    final firstMessage = 'Bonjour $_currentUserName merci d\'avoir réservé un créneau de mentorat '
+      'le ${AppDateUtils.formatDay(slot.startTime)} à ${AppDateUtils.formatTime(slot.startTime)}.\n'
+      'Lors de cette première séance nous allons vous expliquer le fonctionnement du mentorat et '
+      'comprendre vos attente afin de vous choisir le mentor adapté à vos besoin In Sha Allah.\n'
+      'Je suis à votre disposition à tout moment si vous avez des question.\n'
+      'Bonne journée.';
+    
+    // Créer le message
+    final message = Message(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      text: firstMessage,
+      senderId: _currentUserId!,
+      timestamp: DateTime.now(),
+      isFromCoach: true,
+    );
+
+    try {
+      debugPrint('SessionProvider: Sending message: $firstMessage');
+      
+
+      // Ajouter à la liste et notifier
+      _messages.add(message);
+      notifyListeners();
+
+      // Appel technique pur
+      await _agoraService.sendTextMessage(
+        roomId: currentRoomId!,
+        content: firstMessage,
+      );
+    } catch (e) {
+      // En cas d'erreur, retirer le message
+      _messages.removeWhere((msg) => msg.id == message.id);
+      notifyListeners();
+
+      _setError('Échec envoi premier message: $e');
     }
   }
 
