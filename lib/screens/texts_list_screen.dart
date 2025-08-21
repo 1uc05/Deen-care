@@ -149,7 +149,7 @@ class _TextsListScreenState extends State<TextsListScreen> {
                 // Section textes suivis
                 if (trackedTexts.isNotEmpty) ...[
                   _buildSectionHeader(
-                    'Sourates à mémoriser',
+                    'Sourates à maitriser',
                     '${trackedTexts.length}/${AppConstants.maxTrackedTexts}',
                     AppColors.primary,
                   ),
@@ -165,7 +165,7 @@ class _TextsListScreenState extends State<TextsListScreen> {
                 // Section textes disponibles
                 if (availableTexts.isNotEmpty) ...[
                   _buildSectionHeader(
-                    'Autres sourates',
+                    'Sourates',
                     '${availableTexts.length} Sourates',
                     AppColors.textGrey,
                   ),

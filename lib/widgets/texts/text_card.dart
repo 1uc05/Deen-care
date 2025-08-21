@@ -190,7 +190,7 @@ class TextCard extends StatelessWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(success 
-                ? 'Sourate ajouté à vos favoris'
+                ? 'Sourate ajouté aux sourates à maitriser'
                 : 'Maximum 3 Sourates suivis autorisés'),
               backgroundColor: success ? AppColors.secondary : AppColors.noStatus,
               duration: const Duration(seconds: 2),

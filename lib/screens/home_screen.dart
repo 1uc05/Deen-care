@@ -144,7 +144,7 @@ class HomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  '📖 Mémorisation',
+                  '📖 Mémorisation & Récitation ',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -203,7 +203,7 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 16),
           
           const Text(
-            'Commencez à mémoriser',
+            'Assistant mémorisation',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -214,7 +214,7 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 8),
           
           const Text(
-            'Choisissez vos premières Sourates à apprendre par coeur',
+            'Choisissez les Sourates que vous voulez perfectionner avec l’assistant et votre mentor',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.textGrey,
