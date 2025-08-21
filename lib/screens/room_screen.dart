@@ -19,6 +19,7 @@ class RoomScreen extends StatefulWidget {
 class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
   final ScrollController _scrollController = ScrollController();
   bool _isFirstLoad = true;
+  int _previousMessageCount = 0;
 
   @override
   void initState() {
@@ -58,36 +59,45 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: _buildAppBar(context),
-      body: Consumer<SessionProvider>(
-        builder: (context, sessionProvider, child) {
-          // Vérifier si une session est active
-          if (sessionProvider.currentSession == null) {
-            return const _NoSessionView();
-          }
-
-          // Auto-scroll vers le bas lors du premier chargement ou nouveaux messages
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_isFirstLoad && sessionProvider.messages.isNotEmpty) {
-              _scrollToBottom();
-              _isFirstLoad = false;
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: Consumer<SessionProvider>(
+          builder: (context, sessionProvider, child) {
+            // Vérifier si une session est active
+            if (sessionProvider.currentSession == null) {
+              return const _NoSessionView();
             }
-          });
 
-          return Column(
-            children: [
-              // Indicateur de connexion
-              _buildConnectionStatus(sessionProvider),
-              
-              // Zone des messages
-              Expanded(
-                child: _buildMessagesArea(sessionProvider),
-              ),
-              
-              // Bouton d'appel + champ de saisie
-              _buildBottomSection(context, sessionProvider),
-            ],
-          );
-        },
+            // Auto-scroll vers le bas lors du premier chargement ou nouveaux messages
+            final currentMessageCount = sessionProvider.messages.length;
+            
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              // Premier chargement OU nouveau message reçu
+              if ((_isFirstLoad && sessionProvider.messages.isNotEmpty) ||
+                  (currentMessageCount > _previousMessageCount)) {
+                _scrollToBottom();
+                if (_isFirstLoad) _isFirstLoad = false;
+              }
+              _previousMessageCount = currentMessageCount; // Mise à jour du compteur
+            });
+
+            return Column(
+              children: [
+                // Indicateur de connexion
+                _buildConnectionStatus(sessionProvider),
+
+                // Zone des messages
+                Expanded(
+                  child: _buildMessagesArea(sessionProvider),
+                ),
+
+                // Bouton d'appel + champ de saisie
+                _buildBottomSection(context, sessionProvider),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

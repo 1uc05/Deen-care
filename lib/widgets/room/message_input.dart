@@ -99,7 +99,7 @@ class _MessageInputState extends State<MessageInput> {
                 maxLines: null,
                 minLines: 1,
                 keyboardType: TextInputType.multiline,
-                textInputAction: TextInputAction.send,
+                textInputAction: TextInputAction.done,
                 onSubmitted: widget.enabled ? (_) => _handleSendMessage() : null,
                 decoration: InputDecoration(
                   hintText: widget.enabled 
