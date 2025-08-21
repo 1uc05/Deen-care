@@ -220,7 +220,6 @@ class SessionProvider extends ChangeNotifier {
       // Envoie du premier message
       await _sendFirstMessage(slot);
 
-
     } catch (e) {
       _rollbackBooking(session?.id, slot.id);
       _setError('Réservation échouée: $e');
@@ -659,8 +658,9 @@ class SessionProvider extends ChangeNotifier {
 
   /// ========== PRIVATE: GESTION DES MESSAGES ==========
   /// Envoi du premier message
-  Future<void> _sendFirstMessage(Slot slot) async {    
-    if (_currentUserId == null || currentRoomId == null) {
+  Future<void> _sendFirstMessage(Slot slot) async {
+    // if (_currentUserId == null || currentRoomId == null) {
+    if (_currentUserId == null) {
       _setError('Session non initialisée');
     }
 
@@ -681,18 +681,17 @@ class SessionProvider extends ChangeNotifier {
     );
 
     try {
-      debugPrint('SessionProvider: Sending message: $firstMessage');
-      
+      debugPrint('SessionProvider: Sending message');
 
       // Ajouter à la liste et notifier
       _messages.add(message);
       notifyListeners();
 
       // Appel technique pur
-      await _agoraService.sendTextMessage(
-        roomId: currentRoomId!,
-        content: firstMessage,
-      );
+      // await _agoraService.sendTextMessage(
+      //   roomId: currentRoomId!,
+      //   content: firstMessage,
+      // );
     } catch (e) {
       // En cas d'erreur, retirer le message
       _messages.removeWhere((msg) => msg.id == message.id);

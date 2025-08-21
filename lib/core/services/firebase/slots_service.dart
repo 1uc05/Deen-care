@@ -137,6 +137,7 @@ class SlotsService extends FirebaseService {
         final slot = Slot.fromMap(slotDoc.data()!, slotId);
 
         if (slot.reservedBy != userId) {
+          debugPrint('slod.id: $slotId - reservedBy: ${slot.reservedBy} - userId: $userId');
           setError('Vous ne pouvez pas annuler cette réservation');
         }
 
