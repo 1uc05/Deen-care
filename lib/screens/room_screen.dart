@@ -98,6 +98,7 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
       backgroundColor: AppColors.primary,
       foregroundColor: Colors.white,
       elevation: 2,
+      centerTitle: false,
       title: Consumer<SessionProvider>(
         builder: (context, sessionProvider, child) {
           final session = sessionProvider.currentSession;

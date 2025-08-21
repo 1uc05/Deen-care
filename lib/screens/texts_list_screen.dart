@@ -33,6 +33,7 @@ class _TextsListScreenState extends State<TextsListScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        centerTitle: false,
       ),
       backgroundColor: AppColors.background,
       body: Consumer<TextsProvider>(

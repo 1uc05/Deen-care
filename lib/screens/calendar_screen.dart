@@ -226,7 +226,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               ),
                             ),
 
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 22),
+
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(12),
