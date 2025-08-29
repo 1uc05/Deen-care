@@ -198,6 +198,7 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Effacer la progression ?'),
+            backgroundColor: AppColors.backgroundLight,
         content: const Text(
           'Cette action remettra votre progression à zéro. Cette action est irréversible.'
         ),
@@ -222,12 +223,14 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Sauvegarder avant de quitter ?'),
+        backgroundColor: AppColors.backgroundLight,
         content: const Text(
           'Vous avez des modifications non sauvegardées. Voulez-vous les sauvegarder ?'
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(foregroundColor: AppColors.textDark),
             child: const Text('Quitter sans sauvegarder'),
           ),
           TextButton(

@@ -44,6 +44,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Annuler la réservation'),
+        backgroundColor: AppColors.backgroundLight,
         content: const Text('Êtes-vous sûr de vouloir annuler votre réservation ?'),
         actions: [
           TextButton(

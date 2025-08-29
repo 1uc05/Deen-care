@@ -150,7 +150,10 @@ class ReservationCard extends StatelessWidget {
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.noStatus,
+                        ),
                       )
                     : const Icon(Icons.cancel_outlined, size: 18),
                   label: const Text('Annuler'),
