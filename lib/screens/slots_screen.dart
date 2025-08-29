@@ -21,7 +21,7 @@ class SlotsScreen extends StatefulWidget {
 }
 
 class _SlotsScreenState extends State<SlotsScreen> {
-  bool _isBooking = false;
+  String? _bookingSlotId;
 
   @override
   Widget build(BuildContext context) {    
@@ -154,6 +154,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
   Widget _buildSlotItem(Slot slot, {required bool isBlocked}) {
     final startTime = AppDateUtils.formatTime(slot.startTime);
     final endTime = AppDateUtils.formatTime(slot.endTime);
+    final isCurrentSlotBooking = _bookingSlotId == slot.id;
 
     return Card(
       elevation: isBlocked ? 1 : 2,
@@ -161,7 +162,9 @@ class _SlotsScreenState extends State<SlotsScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
-        onTap: (isBlocked || _isBooking) ? null : () => _showBookingConfirmation(slot),
+        onTap: (isBlocked || _bookingSlotId != null)
+          ? null
+          : () => _showBookingConfirmation(slot),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(20),
@@ -226,7 +229,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
               ),
               
               // Flèche, loader ou icône bloquée
-              if (_isBooking)
+              if (isCurrentSlotBooking)
                 const SizedBox(
                   width: 20,
                   height: 20,
@@ -305,9 +308,9 @@ class _SlotsScreenState extends State<SlotsScreen> {
   }
 
   Future<void> _bookSlot(Slot slot) async {
-    if (_isBooking) return;
-
-    setState(() => _isBooking = true);
+    setState(() {
+      _bookingSlotId = slot.id;
+    });
 
     try {
       final sessionsProvider = context.read<SessionProvider>();
@@ -344,7 +347,9 @@ class _SlotsScreenState extends State<SlotsScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isBooking = false);
+        setState(() {
+          _bookingSlotId = null;
+        });
       }
     }
   }
