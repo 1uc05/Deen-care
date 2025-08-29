@@ -18,8 +18,13 @@ class HomeTextCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasProgress = progress != null;
+
+    // Phrase 1 ignorée, commence à phrase 2
+    final int adjustedCurrent = progress!.currentSentence <= 1 ? 0 : progress!.currentSentence - 1;
+    final int adjustedTotal = text.totalSentences <= 1 ? 1 : text.totalSentences - 1;
+
     final progressValue = hasProgress 
-        ? (progress!.currentSentence / text.sentences.length).clamp(0.0, 1.0)
+        ? (adjustedCurrent / adjustedTotal).clamp(0.0, 1.0)
         : 0.0;
     final percentage = (progressValue * 100).round();
 
@@ -124,7 +129,7 @@ class HomeTextCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${progress!.currentSentence}/${text.sentences.length} versets',
+                  '$adjustedCurrent/$adjustedTotal versets',
                   style: const TextStyle(
                     fontSize: 10,
                     color: AppColors.textGrey,
