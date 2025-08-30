@@ -18,14 +18,12 @@ class TextMemorizationScreen extends StatefulWidget {
 }
 
 class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
-  int _currentSentenceIndex = 0;
-  int _currentWordIndex = 0;
-  List<String> _currentWords = [];
+  int _currentMaxSentence = 0; // Nombre de versets débloqués
   bool _hasUnsavedChanges = false;
   bool _isLoading = true;
-  
+  bool _isRevealingLetters = false; // État révélation temporaire
+
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey _lastWordKey = GlobalKey();
 
   @override
   void initState() {
@@ -42,96 +40,49 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
   void _loadInitialState() {
     final provider = context.read<TextsProvider>();
     final progress = provider.getProgressForText(widget.text.id);
-    
+
     if (progress != null && progress.currentSentence > 0) {
-      _currentSentenceIndex = progress.currentSentence;
+      _currentMaxSentence = progress.currentSentence;
+    } else {
+      _currentMaxSentence = 0; // Commence par le premier verset seulement
     }
-    
-    _updateCurrentWords();
-    
+
     setState(() {
       _isLoading = false;
     });
   }
 
-  void _updateCurrentWords() {
-    if (_currentSentenceIndex < widget.text.sentences.length) {
-      final sentence = widget.text.sentences[_currentSentenceIndex];
-      _currentWords = sentence.phoneticArabic.split(' ');
+  void _revealNextSentence() {
+    if (_currentMaxSentence < widget.text.sentences.length - 1) {
+      setState(() {
+        _currentMaxSentence++;
+        _hasUnsavedChanges = true;
+      });
       
-      // Si on arrive sur une nouvelle phrase, commencer au premier mot
-      if (_currentWordIndex >= _currentWords.length) {
-        _currentWordIndex = 0;
-      }
+      // Auto-scroll vers le nouveau verset
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      });
     }
   }
 
-  void _revealNextWord() {
-    if (_currentSentenceIndex >= widget.text.sentences.length) return;
-
-    setState(() {
-      _hasUnsavedChanges = true;
-      
-      if (_currentWordIndex < _currentWords.length - 1) {
-        // Révéler le mot suivant dans la phrase courante
-        _currentWordIndex++;
-      } else if (_currentSentenceIndex < widget.text.sentences.length - 1) {
-        // Passer à la phrase suivante
-        _goToNextSentence();
-      } else {
-        _currentSentenceIndex++;
-      }
-    });
-
-    // Scroll automatique vers le dernier mot révélé
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToLastWord();
-    });
-  }
-
-  void _goToNextSentence() {
-    _currentSentenceIndex++;
-    _currentWordIndex = 0;
-    _updateCurrentWords();
-  }
-
-  void _scrollToLastWord() {
-    if (_lastWordKey.currentContext != null) {
-      Scrollable.ensureVisible(
-        _lastWordKey.currentContext!,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
-      );
-    }
+  String _formatWordWithMask(String word) {
+    if (word.isEmpty) return word;
+    return word[0] + '_' * (word.length - 1);
   }
 
   bool _isTextCompleted() {
-    return _currentSentenceIndex >= widget.text.sentences.length;
+    return _currentMaxSentence >= widget.text.sentences.length - 1;
   }
 
   Future<void> _saveProgress() async {
-    final provider = context.read<TextsProvider>();
-    
     try {
-      // Ajouter le texte au suivi s'il ne l'est pas déjà
-      if (!provider.isTextTracked(widget.text.id)) {
-        final added = await provider.addTextToProgress(widget.text.id);
-        if (!added) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Limite de 3 Sourate atteinte'),
-                backgroundColor: AppColors.noStatus,
-              ),
-            );
-          }
-          return;
-        }
-      }
-      
-      // Sauvegarder la progression
-      await provider.saveProgress(widget.text.id, _currentSentenceIndex);
+      final provider = context.read<TextsProvider>();
+      await provider.saveProgress(widget.text.id, _currentMaxSentence);
       
       setState(() {
         _hasUnsavedChanges = false;
@@ -158,19 +109,16 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
   }
 
   Future<void> _resetProgress() async {
-    final confirmed = await _showResetConfirmation();
-    if (!confirmed) return;
+    final shouldReset = await _showResetConfirmation();
+    if (!shouldReset) return;
 
-    final provider = context.read<TextsProvider>();
-    
     try {
-      await provider.resetProgress(widget.text.id);
-      
+      final provider = context.read<TextsProvider>();
+      await provider.saveProgress(widget.text.id, 0);
+
       setState(() {
-        _currentSentenceIndex = 0;
-        _currentWordIndex = 0;
+        _currentMaxSentence = 0;
         _hasUnsavedChanges = false;
-        _updateCurrentWords();
       });
 
       if (mounted) {
@@ -198,7 +146,6 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Effacer la progression ?'),
-            backgroundColor: AppColors.backgroundLight,
         content: const Text(
           'Cette action remettra votre progression à zéro. Cette action est irréversible.'
         ),
@@ -223,14 +170,12 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Sauvegarder avant de quitter ?'),
-        backgroundColor: AppColors.backgroundLight,
         content: const Text(
           'Vous avez des modifications non sauvegardées. Voulez-vous les sauvegarder ?'
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            style: TextButton.styleFrom(foregroundColor: AppColors.textDark),
             child: const Text('Quitter sans sauvegarder'),
           ),
           TextButton(
@@ -245,7 +190,7 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
 
   Future<bool> _onWillPop() async {
     if (!_hasUnsavedChanges) return true;
-    
+
     final shouldSave = await _showSaveConfirmation();
     if (shouldSave) {
       await _saveProgress();
@@ -309,28 +254,21 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
                 children: [
                   // Indicateur de progression
                   TextProgressIndicator(
-                    currentSentence: _currentSentenceIndex,
+                    currentSentence: _currentMaxSentence,
                     totalSentences: widget.text.sentences.length,
                   ),
-                  
+
                   // Zone d'affichage du texte
                   Expanded(
                     child: _isTextCompleted()
                         ? _buildCompletionView()
                         : _buildTextView(),
                   ),
+
+                  // Boutons en bas
+                  if (!_isTextCompleted()) _buildBottomButtons(),
                 ],
               ),
-        // Bouton flottant pour révéler le mot suivant
-        floatingActionButton: _isTextCompleted() 
-            ? null 
-            : FloatingActionButton(
-                onPressed: _revealNextWord,
-                backgroundColor: AppColors.secondary,
-                foregroundColor: Colors.white,
-                child: const Icon(Icons.touch_app, size: 28),
-              ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       ),
     );
   }
@@ -338,35 +276,29 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
   Widget _buildTextView() {
     return SingleChildScrollView(
       controller: _scrollController,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Affichage des phrases déjà complètes
-          ...List.generate(_currentSentenceIndex, (sentenceIndex) {
-            return _buildCompleteSentence(sentenceIndex);
+          // Affichage des versets débloqués
+          ...List.generate(_currentMaxSentence + 1, (sentenceIndex) {
+            return _buildSentenceDisplay(sentenceIndex);
           }),
-          
-          // Phrase courante avec révélation progressive
-          if (_currentSentenceIndex < widget.text.sentences.length)
-            _buildCurrentSentence(),
-          
-          // Espace pour le FAB
-          const SizedBox(height: 80),
         ],
       ),
     );
   }
 
-  Widget _buildCompleteSentence(int sentenceIndex) {
+  Widget _buildSentenceDisplay(int sentenceIndex) {
     final sentence = widget.text.sentences[sentenceIndex];
-    
+    final words = sentence.phoneticArabic.split(' ');
+
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Numéro de phrase
+          // Numéro de verset
           Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -383,18 +315,24 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
               ),
             ),
           ),
-          
-          // Texte complet de la phrase
-          Text(
-            sentence.phoneticArabic,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textDark,
-              height: 1.6,
-            ),
+
+          // Mots avec masquage ou révélation
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: words.map((word) {
+              return Text(
+                _isRevealingLetters ? word : _formatWordWithMask(word),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textDark,
+                  height: 1.6,
+                ),
+              );
+            }).toList(),
           ),
-          
+
           // Séparateur
           const SizedBox(height: 16),
           Container(
@@ -407,58 +345,101 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
     );
   }
 
-  Widget _buildCurrentSentence() {
-    final sentence = widget.text.sentences[_currentSentenceIndex];
-    final words = sentence.phoneticArabic.split(' ');
-    
+  Widget _buildBottomButtons() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        boxShadow: [
+          BoxShadow(
+            offset: const Offset(0, -2),
+            blurRadius: 8,
+            color: Colors.black.withOpacity(0.1),
+          ),
+        ],
+      ),
+      child: Row(
         children: [
-          // Numéro de phrase courante
-          Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.secondaryLight,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-
-              _currentSentenceIndex == 0 ? 'Basmala (en cours)' : 'Verset $_currentSentenceIndex  (en cours)',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.secondary,
-                fontWeight: FontWeight.w600,
+          // Bouton révéler lettres
+          Expanded(
+            child: GestureDetector(
+              onTapDown: (_) => setState(() => _isRevealingLetters = true),
+              onTapUp: (_) => setState(() => _isRevealingLetters = false),
+              onTapCancel: () => setState(() => _isRevealingLetters = false),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _isRevealingLetters ? AppColors.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.primary,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.visibility,
+                      size: 18,
+                      color: _isRevealingLetters ? Colors.white : AppColors.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Révéler Versets',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: _isRevealingLetters ? Colors.white : AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-          
-          // Mots révélés progressivement
-          Wrap(
-            spacing: 6,
-            runSpacing: 4,
-            children: List.generate(words.length, (wordIndex) {
-              final isRevealed = wordIndex <= _currentWordIndex;
-              final isLastRevealed = wordIndex == _currentWordIndex;
-              
-              return Container(
-                key: isLastRevealed ? _lastWordKey : null,
-                child: Text(
-                  isRevealed ? words[wordIndex] : '____',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: isRevealed ? AppColors.textDark : AppColors.textGreyLight,
-                    height: 1.6,
-                    decoration: isLastRevealed ? TextDecoration.underline : null,
-                    decorationColor: AppColors.secondary,
-                    decorationThickness: 2,
-                  ),
+
+          const SizedBox(width: 12),
+
+          // Bouton verset suivant
+          Expanded(
+            child: GestureDetector(
+              onTap: _currentMaxSentence < widget.text.sentences.length - 1 
+                  ? _revealNextSentence 
+                  : null,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _currentMaxSentence < widget.text.sentences.length - 1
+                      ? AppColors.secondary
+                      : AppColors.backgroundLight,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              );
-            }),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add,
+                      size: 18,
+                      color: _currentMaxSentence < widget.text.sentences.length - 1
+                          ? Colors.white
+                          : AppColors.textGreyLight,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Verset suivant',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: _currentMaxSentence < widget.text.sentences.length - 1
+                            ? Colors.white
+                            : AppColors.textGreyLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
