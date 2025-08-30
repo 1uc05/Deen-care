@@ -328,6 +328,7 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
                   fontWeight: FontWeight.w500,
                   color: AppColors.textDark,
                   height: 1.6,
+                  fontFamily: 'monospace' // Pour éviter les mots à la ligne
                 ),
               );
             }).toList(),
