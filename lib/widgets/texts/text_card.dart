@@ -214,11 +214,10 @@ class TextCard extends StatelessWidget {
     if (progress == null) return const SizedBox.shrink();
 
     // Phrase 1 ignorée, commence à phrase 2
-    final int adjustedCurrent = progress!.currentSentence <= 1 ? 0 : progress!.currentSentence - 1;
     final int adjustedTotal = text.totalSentences <= 1 ? 1 : text.totalSentences - 1;
     
-    final progressPercent = adjustedCurrent / adjustedTotal;
-    final progressText = '$adjustedCurrent/$adjustedTotal Versets';
+    final progressPercent = progress!.currentSentence / adjustedTotal;
+    final progressText = '${progress!.currentSentence}/$adjustedTotal Versets';
     final isCompleted = progressPercent.round() >= 1;
 
     return Container(

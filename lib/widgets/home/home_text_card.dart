@@ -20,11 +20,10 @@ class HomeTextCard extends StatelessWidget {
     final hasProgress = progress != null;
 
     // Phrase 1 ignorée, commence à phrase 2
-    final int adjustedCurrent = progress!.currentSentence <= 1 ? 0 : progress!.currentSentence - 1;
     final int adjustedTotal = text.totalSentences <= 1 ? 1 : text.totalSentences - 1;
 
     final progressValue = hasProgress 
-        ? (adjustedCurrent / adjustedTotal).clamp(0.0, 1.0)
+        ? (progress!.currentSentence / adjustedTotal).clamp(0.0, 1.0)
         : 0.0;
     final percentage = (progressValue * 100).round();
 
@@ -129,7 +128,7 @@ class HomeTextCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$adjustedCurrent/$adjustedTotal versets',
+                  '$progress!.currentSentence/$adjustedTotal versets',
                   style: const TextStyle(
                     fontSize: 10,
                     color: AppColors.textGrey,
