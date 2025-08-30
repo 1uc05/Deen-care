@@ -18,10 +18,10 @@ class TextMemorizationScreen extends StatefulWidget {
 }
 
 class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
-  int _currentMaxSentence = 0; // Nombre de versets débloqués
+  int _currentMaxSentence = 0;
   bool _hasUnsavedChanges = false;
   bool _isLoading = true;
-  bool _isRevealingLetters = false; // État révélation temporaire
+  bool _isRevealingLetters = false;
 
   final ScrollController _scrollController = ScrollController();
 
@@ -44,7 +44,7 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
     if (progress != null && progress.currentSentence > 0) {
       _currentMaxSentence = progress.currentSentence;
     } else {
-      _currentMaxSentence = 0; // Commence par le premier verset seulement
+      _currentMaxSentence = 0;
     }
 
     setState(() {
@@ -67,6 +67,12 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
           curve: Curves.easeOut,
         );
       });
+    } else {
+      // Tous les versets sont affichés, passer à la vue de completion
+      setState(() {
+        _currentMaxSentence = widget.text.sentences.length; // Marque comme terminé
+        _hasUnsavedChanges = true;
+      });
     }
   }
 
@@ -76,7 +82,7 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
   }
 
   bool _isTextCompleted() {
-    return _currentMaxSentence >= widget.text.sentences.length - 1;
+    return _currentMaxSentence > widget.text.sentences.length - 1;
   }
 
   Future<void> _saveProgress() async {
@@ -260,7 +266,7 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
 
                   // Zone d'affichage du texte
                   Expanded(
-                    child: _isTextCompleted()
+                    child: _isTextCompleted() 
                         ? _buildCompletionView()
                         : _buildTextView(),
                   ),
@@ -347,6 +353,8 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
   }
 
   Widget _buildBottomButtons() {
+    final bool allVersesDisplayed = _currentMaxSentence >= widget.text.sentences.length - 1;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -402,39 +410,31 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
 
           const SizedBox(width: 12),
 
-          // Bouton verset suivant
+          // Bouton verset suivant / Finir
           Expanded(
             child: GestureDetector(
-              onTap: _currentMaxSentence < widget.text.sentences.length - 1 
-                  ? _revealNextSentence 
-                  : null,
+              onTap: _revealNextSentence,
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: _currentMaxSentence < widget.text.sentences.length - 1
-                      ? AppColors.secondary
-                      : AppColors.backgroundLight,
+                  color: AppColors.secondary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.add,
+                      allVersesDisplayed ? Icons.check : Icons.add,
                       size: 18,
-                      color: _currentMaxSentence < widget.text.sentences.length - 1
-                          ? Colors.white
-                          : AppColors.textGreyLight,
+                      color: Colors.white,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Verset suivant',
-                      style: TextStyle(
+                      allVersesDisplayed ? 'Finir' : 'Verset suivant',
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: _currentMaxSentence < widget.text.sentences.length - 1
-                            ? Colors.white
-                            : AppColors.textGreyLight,
+                        color: Colors.white,
                       ),
                     ),
                   ],

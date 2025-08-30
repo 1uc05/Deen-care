@@ -15,9 +15,10 @@ class TextProgressIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     // Phrase 1 ignorée, commence à phrase 2
     final int adjustedTotal = totalSentences <= 1 ? 1 : totalSentences - 1;
+    final int adjustedCurrent = currentSentence > adjustedTotal ? adjustedTotal : currentSentence;
     
     final double progress = adjustedTotal > 0 
-        ? currentSentence / adjustedTotal 
+        ? adjustedCurrent / adjustedTotal 
         : 0.0;
     final int percentage = (progress * 100).round();
 
@@ -49,7 +50,7 @@ class TextProgressIndicator extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '$currentSentence/$adjustedTotal Versets',
+                '$adjustedCurrent/$adjustedTotal Versets',
                 style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.textGrey,
