@@ -182,6 +182,7 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(foregroundColor: AppColors.textDark),
             child: const Text('Quitter sans sauvegarder'),
           ),
           TextButton(
@@ -258,12 +259,15 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
+                  // Banner d'instruction discrète
+                  _buildInstructionBanner(),
+
                   // Indicateur de progression
                   TextProgressIndicator(
                     currentSentence: _currentMaxSentence,
                     totalSentences: widget.text.sentences.length,
                   ),
-
+                  
                   // Zone d'affichage du texte
                   Expanded(
                     child: _isTextCompleted() 
@@ -490,6 +494,55 @@ class _TextMemorizationScreenState extends State<TextMemorizationScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInstructionBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.primarySoft,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.lightbulb_outline,
+            size: 16,
+            color: AppColors.primaryBold,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textGrey,
+                  height: 1.3,
+                ),
+                children: [
+                  const TextSpan(text: 'Appuyez sur '),
+                  WidgetSpan(
+                    child: Icon(
+                      Icons.visibility,
+                      size: 14,
+                      color: AppColors.primaryBold,
+                    ),
+                  ),
+                  const TextSpan(text: ' pour révéler et mémoriser à voix haute, puis récitez sans révéler.'),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
