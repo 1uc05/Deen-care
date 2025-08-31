@@ -665,10 +665,10 @@ class SessionProvider extends ChangeNotifier {
     }
 
     final firstMessage = 'Bonjour $_currentUserName merci d\'avoir réservé un créneau de mentorat '
-      'le ${AppDateUtils.formatDay(slot.startTime)} à ${AppDateUtils.formatTime(slot.startTime)}.\n'
+      'le ${AppDateUtils.formatDate(slot.startTime)} à ${AppDateUtils.formatTime(slot.startTime)}.\n'
       'Lors de cette première séance nous allons vous expliquer le fonctionnement du mentorat et '
       'comprendre vos attentes afin de vous choisir le mentor adapté à vos besoin In Sha Allah.\n'
-      'Je suis à votre disposition à tout moment si vous avez des question.\n'
+      'Je suis à votre disposition à tout moment si vous avez des questions.\n'
       'Bonne journée.';
     
     // Créer le message

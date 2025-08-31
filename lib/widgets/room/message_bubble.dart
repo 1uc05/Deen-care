@@ -57,7 +57,7 @@ class MessageBubble extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4, left: 12),
                     child: Text(
-                      isCoach ? 'Coach' : 'Client',
+                      isCoach ? 'Mentor' : 'Client',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textGrey,
