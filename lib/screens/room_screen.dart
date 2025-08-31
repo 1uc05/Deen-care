@@ -240,6 +240,10 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
       );
     }
 
+    if (!sessionProvider.hasActiveSession()) {
+      return const _NoSessionView();
+    }
+
     if (sessionProvider.messages.isEmpty) {
       return const Center(
         child: Column(
