@@ -95,6 +95,7 @@ class SessionProvider extends ChangeNotifier {
   Future<void> initialize(String userId, String userName) async {
     if(_isInitialized) return;
     
+      _messages = [];
       _currentUserId = userId;
       _currentUserName = userName;
 
