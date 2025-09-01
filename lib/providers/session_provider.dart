@@ -126,6 +126,11 @@ class SessionProvider extends ChangeNotifier {
           throw Exception('SessionProvider: Session active introuvable');
         }
 
+        // Met à jour le statut de la session s'il a changé pendant déconnection
+        if(_currentSession!.effectiveStatus != _currentSession!.status) {
+          await _autoUpdateSessionStatus(_currentSession!.effectiveStatus);
+        }
+
         // Initialiser Agora si la session est active
         if (_currentSession!.isActive) {
 
@@ -150,11 +155,6 @@ class SessionProvider extends ChangeNotifier {
           // Initialise RTC si session en cours
           if (_currentSession!.isInProgress) {
             await _agoraService.initializeRtcEngine();
-          }
-
-          // Met à jour le statut de la session s'il a changé pendant déconnection
-          if(_currentSession!.effectiveStatus != _currentSession!.status) {
-            await _autoUpdateSessionStatus(_currentSession!.effectiveStatus);
           }
 
           _listenActiveSession();
