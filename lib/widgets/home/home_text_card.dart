@@ -128,7 +128,7 @@ class HomeTextCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$progress!.currentSentence/$adjustedTotal versets',
+                  '${progress!.currentSentence}/$adjustedTotal versets',
                   style: const TextStyle(
                     fontSize: 10,
                     color: AppColors.textGrey,
