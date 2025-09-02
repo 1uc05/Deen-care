@@ -19,7 +19,7 @@ plugins {
 
 android {
     namespace = "care.deen"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
     // ndkVersion = flutter.ndkVersion
     ndkVersion = "27.0.12077973" 
 
@@ -49,9 +49,11 @@ android {
         // minSdk = flutter.minSdkVersion
         minSdk = 23
         // targetSdk = flutter.targetSdkVersion
-        targetSdk = 34
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        manifestPlaceholders["agoraScreenCapture"] = false
     }
 
     buildTypes {
@@ -65,4 +67,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// Désactiver screen sharing Agora (inutilisé)
+configurations.implementation {
+    exclude(group = "io.agora.rtc", module = "full-screen-sharing")
 }
