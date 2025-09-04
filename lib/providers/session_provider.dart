@@ -633,6 +633,7 @@ class SessionProvider extends ChangeNotifier {
 
       await _agoraService.joinVoiceChannel(_currentSession!.agoraChannelId!, voiceToken);
     } catch (e) {
+      _voiceCallState = VoiceCallState.idle;
       _setError('Erreur initialisation RTC: $e');
       return;
     }
